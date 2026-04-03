@@ -97,27 +97,28 @@ func (pc *PermissionChecker) Check(toolName string, input map[string]any, isRead
 		return CheckResult{Behavior: "allow"}
 	}
 
-	// AcceptEdits mode: allow file edits
-	if pc.Mode == PermAcceptEdit {
-		if toolName == "Edit" || toolName == "Write" || toolName == "NotebookEdit" {
-			return CheckResult{Behavior: "allow"}
-		}
-	}
-
-	// Check dangerous file patterns
+	// Check dangerous file patterns (before mode-specific logic)
 	if filePath := extractFilePath(input); filePath != "" {
 		if pc.isDangerousPath(filePath) {
 			return CheckResult{Behavior: "ask", Reason: "potentially sensitive file: " + filePath}
 		}
 	}
 
-	// Check dangerous bash commands
+	// Check dangerous bash commands (before mode-specific logic)
 	if toolName == "Bash" || toolName == "PowerShell" {
 		if cmd, ok := input["command"].(string); ok {
 			if isDangerousCommand(cmd) {
 				return CheckResult{Behavior: "ask", Reason: "potentially destructive command"}
 			}
 		}
+	}
+
+	// AcceptEdits mode: allow file edits, ask for everything else
+	if pc.Mode == PermAcceptEdit {
+		if toolName == "Edit" || toolName == "Write" || toolName == "NotebookEdit" {
+			return CheckResult{Behavior: "allow"}
+		}
+		return CheckResult{Behavior: "ask", Reason: "requires permission (acceptEdits mode only auto-allows file edits)"}
 	}
 
 	// Default mode: ask for non-read-only operations
@@ -174,10 +175,25 @@ func matchPattern(pattern, value string) bool {
 
 // isDangerousPath checks if a path targets sensitive files
 func (pc *PermissionChecker) isDangerousPath(path string) bool {
+	base := filepath.Base(path)
+	dir := filepath.Dir(path)
+
 	for _, pattern := range pc.DangerousPatterns {
-		// Strip ** prefix for basename matching
 		cleanPattern := strings.TrimPrefix(pattern, "**/")
-		if matched, _ := filepath.Match(cleanPattern, filepath.Base(path)); matched {
+
+		// Check if pattern targets a directory (e.g., ".ssh/*")
+		if strings.Contains(cleanPattern, "/") {
+			parts := strings.SplitN(cleanPattern, "/", 2)
+			dirPattern := parts[0]
+			// Check if any path component matches the directory pattern
+			if strings.Contains(dir, dirPattern) {
+				return true
+			}
+			continue
+		}
+
+		// Basename matching
+		if matched, _ := filepath.Match(cleanPattern, base); matched {
 			return true
 		}
 	}
@@ -194,7 +210,7 @@ func isDangerousCommand(cmd string) bool {
 		"git reset --hard",
 		"git checkout .",
 		"git clean -f",
-		"git branch -D",
+		"git branch -d",  // lowercase covers -D too after ToLower
 		"drop table", "drop database",
 		"truncate table",
 		"kill -9",
@@ -206,8 +222,15 @@ func isDangerousCommand(cmd string) bool {
 		"dd if=",
 		"> /dev/",
 		"chmod 777",
-		"curl | sh", "curl | bash",
-		"wget | sh", "wget | bash",
+	}
+
+	// Pipe-based dangerous patterns (curl/wget piped to shell)
+	pipePatterns := []string{
+		"curl", "wget",
+	}
+	pipeTargets := []string{
+		"| sh", "| bash", "|sh", "|bash",
+		"| /bin/sh", "| /bin/bash",
 	}
 
 	for _, d := range dangerous {
@@ -215,5 +238,17 @@ func isDangerousCommand(cmd string) bool {
 			return true
 		}
 	}
+
+	// Check pipe-to-shell patterns
+	for _, src := range pipePatterns {
+		if strings.Contains(lower, src) {
+			for _, target := range pipeTargets {
+				if strings.Contains(lower, target) {
+					return true
+				}
+			}
+		}
+	}
+
 	return false
 }

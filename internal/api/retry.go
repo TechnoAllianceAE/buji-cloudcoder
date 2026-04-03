@@ -93,9 +93,12 @@ func calculateDelay(attempt int, cfg RetryConfig, err *RetryableError) time.Dura
 		delay = float64(cfg.MaxDelay)
 	}
 
-	// Add jitter (±25%)
+	// Add jitter (±25%) — clamp to minimum of 100ms to prevent tight loops
 	jitter := delay * 0.25 * (rand.Float64()*2 - 1)
 	delay += jitter
+	if delay < float64(100*time.Millisecond) {
+		delay = float64(100 * time.Millisecond)
+	}
 
 	return time.Duration(delay)
 }

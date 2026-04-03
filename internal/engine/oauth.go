@@ -171,6 +171,75 @@ func LoadTokens() (*OAuthTokens, error) {
 	return &tokens, nil
 }
 
+// RefreshTokens uses the refresh token to obtain a new access token
+func (o *OAuthService) RefreshTokens(refreshToken string) (*OAuthTokens, error) {
+	data := url.Values{
+		"grant_type":    {"refresh_token"},
+		"refresh_token": {refreshToken},
+		"client_id":     {o.config.ClientID},
+	}
+
+	resp, err := http.PostForm(o.config.TokenURL, data)
+	if err != nil {
+		return nil, fmt.Errorf("refresh request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		ExpiresIn    int    `json:"expires_in"`
+		TokenType    string `json:"token_type"`
+		Error        string `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("parse refresh response: %w", err)
+	}
+	if result.Error != "" {
+		return nil, fmt.Errorf("refresh error: %s", result.Error)
+	}
+
+	newRefresh := result.RefreshToken
+	if newRefresh == "" {
+		newRefresh = refreshToken // keep old refresh token if server didn't rotate
+	}
+
+	tokens := &OAuthTokens{
+		AccessToken:  result.AccessToken,
+		RefreshToken: newRefresh,
+		ExpiresAt:    time.Now().Add(time.Duration(result.ExpiresIn) * time.Second),
+		TokenType:    result.TokenType,
+	}
+
+	// Persist the new tokens
+	if err := saveTokens(tokens); err != nil {
+		return tokens, fmt.Errorf("save refreshed tokens: %w", err)
+	}
+
+	return tokens, nil
+}
+
+// LoadAndRefreshIfNeeded loads tokens and refreshes if expired
+func LoadAndRefreshIfNeeded() (*OAuthTokens, error) {
+	tokens, err := LoadTokens()
+	if err != nil {
+		return nil, err
+	}
+
+	// If token is still valid (with 5 min buffer), use it
+	if time.Now().Add(5 * time.Minute).Before(tokens.ExpiresAt) {
+		return tokens, nil
+	}
+
+	// Token expired or expiring soon — refresh
+	if tokens.RefreshToken == "" {
+		return nil, fmt.Errorf("access token expired and no refresh token available — run /login again")
+	}
+
+	svc := NewOAuthService(DefaultOAuthConfig())
+	return svc.RefreshTokens(tokens.RefreshToken)
+}
+
 func (o *OAuthService) exchangeCode(code, verifier, redirectURI string) (*OAuthTokens, error) {
 	data := url.Values{
 		"grant_type":    {"authorization_code"},

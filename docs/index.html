@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>free-code - The Free Build of Claude Code</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">free-code</a>
+            <div class="nav-links">
+                <a href="index.html" data-i18n="home">Home</a>
+                <a href="installation.html" data-i18n="install">Installation</a>
+                <a href="usage.html" data-i18n="usage">Usage</a>
+                <a href="providers.html" data-i18n="providers">Providers</a>
+                <a href="features.html" data-i18n="features">Features</a>
+            </div>
+            <select id="language-selector" class="language-select">
+                <option value="en">English</option>
+                <option value="jp">日本語</option>
+                <option value="cn">中文</option>
+                <option value="hi">हिन्दी</option>
+                <option value="sa">العربية</option>
+            </select>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="container">
+            <h1 data-i18n="hero-title">The Free Build of Claude Code</h1>
+            <p data-i18n="hero-subtitle">All telemetry stripped. All guardrails removed. All experimental features unlocked.</p>
+            <a href="installation.html" class="btn btn-primary" data-i18n="get-started">Get Started</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3 data-i18n="feature-privacy-title">Privacy First</h3>
+                <p data-i18n="feature-privacy-desc">No telemetry, no analytics, no phone-home. Your code stays on your machine.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3 data-i18n="feature-features-title">54 Features Unlocked</h3>
+                <p data-i18n="feature-features-desc">Access all experimental features including Voice Mode, UltraPlan, and Bridge Mode.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🌐</div>
+                <h3 data-i18n="feature-providers-title">5 Providers</h3>
+                <p data-i18n="feature-providers-desc">Choose from Anthropic, OpenAI Codex, AWS Bedrock, Google Vertex, or Foundry.</p>
+            </div>
+        </section>
+
+        <section class="quick-start">
+            <h2 data-i18n="quick-start-title">Quick Start</h2>
+            <div class="code-block">
+                <code>curl -fsSL https://raw.githubusercontent.com/paoloanzn/free-code/main/install.sh | bash</code>
+            </div>
+            <p data-i18n="quick-start-desc">One command to install everything.</p>
+        </section>
+
+        <section class="about">
+            <h2 data-i18n="about-title">What is free-code?</h2>
+            <p data-i18n="about-desc">free-code is a clean, buildable fork of Anthropic's Claude Code CLI with all telemetry removed, security guardrails stripped, and all 54 working experimental features unlocked. Built for developers who want full control over their AI coding assistant.</p>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 free-code. <a href="https://github.com/paoloanzn/free-code" target="_blank" data-i18n="github-link">View on GitHub</a></p>
+        </div>
+    </footer>
+
+    <script src="translations.js"></script>
+    <script src="i18n.js"></script>
+</body>
+</html>

@@ -151,7 +151,14 @@ func getAPIKey(providerCfg api.ProviderConfig) string {
 		return key
 	}
 	cfg := config.Load()
-	return cfg.APIKey
+	if cfg.APIKey != "" {
+		return cfg.APIKey
+	}
+	// Try OAuth tokens saved by /login (auto-refreshes if expired)
+	if tokens, err := engine.LoadAndRefreshIfNeeded(); err == nil && tokens.AccessToken != "" {
+		return tokens.AccessToken
+	}
+	return ""
 }
 
 func runOneShot(apiKey string, cfg types.SessionConfig, prompt string, outputJSON bool) {

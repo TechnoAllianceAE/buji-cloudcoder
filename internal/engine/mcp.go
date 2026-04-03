@@ -307,10 +307,13 @@ func (c *MCPClient) readResource(uri string) (string, error) {
 // --- Transport: stdio ---
 
 type stdioTransport struct {
-	cmd    *exec.Cmd
-	stdin  io.WriteCloser
-	stdout *bufio.Reader
-	nextID int
+	cmd      *exec.Cmd
+	stdin    io.WriteCloser
+	mu       sync.Mutex
+	nextID   int
+	pending  map[int]chan jsonrpcResponse // response dispatcher
+	pendMu   sync.Mutex
+	closed   bool
 }
 
 func newStdioTransport(cfg MCPServerConfig) (*stdioTransport, error) {
@@ -337,45 +340,111 @@ func newStdioTransport(cfg MCPServerConfig) (*stdioTransport, error) {
 		return nil, fmt.Errorf("start process: %w", err)
 	}
 
-	return &stdioTransport{
-		cmd:    cmd,
-		stdin:  stdin,
-		stdout: bufio.NewReaderSize(stdout, 1024*1024),
-	}, nil
+	t := &stdioTransport{
+		cmd:     cmd,
+		stdin:   stdin,
+		pending: make(map[int]chan jsonrpcResponse),
+	}
+
+	// Start dedicated reader goroutine that dispatches responses by ID
+	// and discards server-initiated notifications (no ID / ID=0)
+	go t.readLoop(bufio.NewReaderSize(stdout, 1024*1024))
+
+	return t, nil
+}
+
+// readLoop continuously reads from stdout and routes responses to waiting callers
+func (t *stdioTransport) readLoop(reader *bufio.Reader) {
+	for {
+		line, err := reader.ReadBytes('\n')
+		if err != nil {
+			// EOF or pipe closed — signal all pending requests
+			t.pendMu.Lock()
+			t.closed = true
+			for id, ch := range t.pending {
+				ch <- jsonrpcResponse{Error: &jsonrpcError{Code: -1, Message: "transport closed"}}
+				delete(t.pending, id)
+			}
+			t.pendMu.Unlock()
+			return
+		}
+
+		var resp jsonrpcResponse
+		if err := json.Unmarshal(line, &resp); err != nil {
+			continue // skip malformed lines
+		}
+
+		// Notifications have no ID (or ID=0) — discard them
+		if resp.ID == 0 {
+			continue
+		}
+
+		// Route response to the waiting caller
+		t.pendMu.Lock()
+		ch, ok := t.pending[resp.ID]
+		if ok {
+			ch <- resp
+			delete(t.pending, resp.ID)
+		}
+		t.pendMu.Unlock()
+	}
 }
 
 func (t *stdioTransport) send(method string, params any) (json.RawMessage, error) {
+	t.mu.Lock()
 	t.nextID++
+	id := t.nextID
+	t.mu.Unlock()
+
 	req := jsonrpcRequest{
 		JSONRPC: "2.0",
-		ID:      t.nextID,
+		ID:      id,
 		Method:  method,
 		Params:  params,
 	}
 
+	// Register response channel before sending (avoid race)
+	ch := make(chan jsonrpcResponse, 1)
+	t.pendMu.Lock()
+	if t.closed {
+		t.pendMu.Unlock()
+		return nil, fmt.Errorf("transport closed")
+	}
+	t.pending[id] = ch
+	t.pendMu.Unlock()
+
 	data, err := json.Marshal(req)
 	if err != nil {
+		t.pendMu.Lock()
+		delete(t.pending, id)
+		t.pendMu.Unlock()
 		return nil, err
 	}
 	data = append(data, '\n')
 
-	if _, err := t.stdin.Write(data); err != nil {
+	t.mu.Lock()
+	_, err = t.stdin.Write(data)
+	t.mu.Unlock()
+	if err != nil {
+		t.pendMu.Lock()
+		delete(t.pending, id)
+		t.pendMu.Unlock()
 		return nil, fmt.Errorf("write: %w", err)
 	}
 
-	line, err := t.stdout.ReadBytes('\n')
-	if err != nil {
-		return nil, fmt.Errorf("read: %w", err)
+	// Wait for response (with timeout)
+	select {
+	case resp := <-ch:
+		if resp.Error != nil {
+			return nil, fmt.Errorf("MCP error (%d): %s", resp.Error.Code, resp.Error.Message)
+		}
+		return resp.Result, nil
+	case <-time.After(30 * time.Second):
+		t.pendMu.Lock()
+		delete(t.pending, id)
+		t.pendMu.Unlock()
+		return nil, fmt.Errorf("MCP request %d timed out", id)
 	}
-
-	var resp jsonrpcResponse
-	if err := json.Unmarshal(line, &resp); err != nil {
-		return nil, fmt.Errorf("parse response: %w", err)
-	}
-	if resp.Error != nil {
-		return nil, fmt.Errorf("MCP error (%d): %s", resp.Error.Code, resp.Error.Message)
-	}
-	return resp.Result, nil
 }
 
 func (t *stdioTransport) close() {

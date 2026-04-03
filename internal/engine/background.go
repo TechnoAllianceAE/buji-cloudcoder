@@ -123,6 +123,47 @@ func (m *BackgroundTaskManager) GetOutput(id string) (string, error) {
 	return task.Output.String(), nil
 }
 
+// PruneCompleted removes all completed/failed/stopped tasks from the map
+func (m *BackgroundTaskManager) PruneCompleted() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	pruned := 0
+	for id, t := range m.tasks {
+		if t.Status == "completed" || t.Status == "failed" || t.Status == "stopped" {
+			delete(m.tasks, id)
+			pruned++
+		}
+	}
+	return pruned
+}
+
+// WaitAll blocks until all running tasks complete (with timeout)
+func (m *BackgroundTaskManager) WaitAll(timeout time.Duration) {
+	deadline := time.After(timeout)
+	for {
+		m.mu.RLock()
+		allDone := true
+		for _, t := range m.tasks {
+			if t.Status == "running" {
+				allDone = false
+				break
+			}
+		}
+		m.mu.RUnlock()
+
+		if allDone {
+			return
+		}
+
+		select {
+		case <-deadline:
+			return
+		case <-time.After(100 * time.Millisecond):
+			// poll
+		}
+	}
+}
+
 // FormatTaskList returns a formatted list of background tasks
 func (m *BackgroundTaskManager) FormatTaskList() string {
 	tasks := m.ListTasks()

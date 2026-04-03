@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usage - free-code</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">free-code</a>
+            <div class="nav-links">
+                <a href="index.html" data-i18n="home">Home</a>
+                <a href="installation.html" data-i18n="install">Installation</a>
+                <a href="usage.html" data-i18n="usage">Usage</a>
+                <a href="providers.html" data-i18n="providers">Providers</a>
+                <a href="features.html" data-i18n="features">Features</a>
+            </div>
+            <select id="language-selector" class="language-select">
+                <option value="en">English</option>
+                <option value="jp">日本語</option>
+                <option value="cn">中文</option>
+                <option value="hi">हिन्दी</option>
+                <option value="sa">العربية</option>
+            </select>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <div class="container">
+            <h1 data-i18n="usage-title">Usage Guide</h1>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="page-content">
+            <p data-i18n="usage-intro">This guide covers everything from basic commands to advanced features.</p>
+
+            <h2 data-i18n="usage-basic-title">Basic Commands</h2>
+            <p data-i18n="usage-basic-desc">Start using free-code with these essential commands:</p>
+
+            <h3 data-i18n="usage-interactive">Interactive Mode</h3>
+            <div class="code-block">
+                <code>./cli-dev</code>
+            </div>
+            <p>Starts an interactive chat session where you can have conversations with the AI.</p>
+
+            <h3 data-i18n="usage-oneshot">One-shot Mode</h3>
+            <div class="code-block">
+                <code>./cli-dev -p "what files are in this directory?"</code>
+            </div>
+            <p>Ask a single question and get an immediate response.</p>
+
+            <h3 data-i18n="usage-model">Specify a Model</h3>
+            <div class="code-block">
+                <code>./cli-dev --model claude-opus-4-6</code>
+            </div>
+
+            <h3 data-i18n="usage-login">OAuth Login</h3>
+            <div class="code-block">
+                <code>./cli-dev /login</code>
+            </div>
+            <p>Authenticate with your model provider using OAuth.</p>
+
+            <hr>
+
+            <h2 data-i18n="usage-beginner-title">For Non-CLI Users</h2>
+            <p data-i18n="usage-beginner-desc">If you're new to command-line tools, here's what you need to know:</p>
+            <ul>
+                <li data-i18n="usage-beginner-1">Everything you type after './cli' is a command or option</li>
+                <li data-i18n="usage-beginner-2">The '-p' flag lets you ask a question directly</li>
+                <li data-i18n="usage-beginner-3">Running './cli' alone starts interactive mode where you can chat</li>
+                <li data-i18n="usage-beginner-4">Press Ctrl+C to exit at any time</li>
+            </ul>
+
+            <hr>
+
+            <h2>Common Tasks</h2>
+
+            <h3>Reading Files</h3>
+            <p>In interactive mode, just ask:</p>
+            <div class="code-block">
+                <code>Can you read the contents of src/main.ts?</code>
+            </div>
+
+            <h3>Editing Files</h3>
+            <p>Ask the AI to make changes:</p>
+            <div class="code-block">
+                <code>Add error handling to the fetchUser function</code>
+            </div>
+
+            <h3>Running Commands</h3>
+            <p>The AI can execute shell commands with your permission:</p>
+            <div class="code-block">
+                <code>Run npm install and tell me what happens</code>
+            </div>
+
+            <h3>Searching Code</h3>
+            <p>Find patterns in your codebase:</p>
+            <div class="code-block">
+                <code>Find all uses of useEffect in the project</code>
+            </div>
+
+            <hr>
+
+            <h2>Environment Variables</h2>
+            <p>Configure free-code using environment variables:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Variable</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>ANTHROPIC_API_KEY</code></td>
+                        <td>Anthropic API key</td>
+                    </tr>
+                    <tr>
+                        <td><code>CLAUDE_CODE_USE_OPENAI=1</code></td>
+                        <td>Use OpenAI Codex provider</td>
+                    </tr>
+                    <tr>
+                        <td><code>CLAUDE_CODE_USE_BEDROCK=1</code></td>
+                        <td>Use AWS Bedrock provider</td>
+                    </tr>
+                    <tr>
+                        <td><code>CLAUDE_CODE_USE_VERTEX=1</code></td>
+                        <td>Use Google Vertex AI provider</td>
+                    </tr>
+                    <tr>
+                        <td><code>CLAUDE_CODE_USE_FOUNDRY=1</code></td>
+                        <td>Use Anthropic Foundry provider</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 free-code. <a href="https://github.com/paoloanzn/free-code" target="_blank" data-i18n="github-link">View on GitHub</a></p>
+        </div>
+    </footer>
+
+    <script src="translations.js"></script>
+    <script src="i18n.js"></script>
+</body>
+</html>

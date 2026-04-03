@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Features - free-code</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">free-code</a>
+            <div class="nav-links">
+                <a href="index.html" data-i18n="home">Home</a>
+                <a href="installation.html" data-i18n="install">Installation</a>
+                <a href="usage.html" data-i18n="usage">Usage</a>
+                <a href="providers.html" data-i18n="providers">Providers</a>
+                <a href="features.html" data-i18n="features">Features</a>
+            </div>
+            <select id="language-selector" class="language-select">
+                <option value="en">English</option>
+                <option value="jp">日本語</option>
+                <option value="cn">中文</option>
+                <option value="hi">हिन्दी</option>
+                <option value="sa">العربية</option>
+            </select>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <div class="container">
+            <h1 data-i18n="features-title">Experimental Features</h1>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="page-content">
+            <p data-i18n="features-intro">The full build enables all 54 working feature flags. Here are the highlights:</p>
+
+            <h2 data-i18n="features-ui-title">Interaction & UI</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Flag</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>ULTRAPLAN</code></td>
+                        <td>Remote multi-agent planning on Claude Code web (Opus-class)</td>
+                    </tr>
+                    <tr>
+                        <td><code>ULTRATHINK</code></td>
+                        <td>Deep thinking mode -- type "ultrathink" to boost reasoning effort</td>
+                    </tr>
+                    <tr>
+                        <td><code>VOICE_MODE</code></td>
+                        <td>Push-to-talk voice input and dictation</td>
+                    </tr>
+                    <tr>
+                        <td><code>TOKEN_BUDGET</code></td>
+                        <td>Token budget tracking and usage warnings</td>
+                    </tr>
+                    <tr>
+                        <td><code>HISTORY_PICKER</code></td>
+                        <td>Interactive prompt history picker</td>
+                    </tr>
+                    <tr>
+                        <td><code>MESSAGE_ACTIONS</code></td>
+                        <td>Message action entrypoints in the UI</td>
+                    </tr>
+                    <tr>
+                        <td><code>QUICK_SEARCH</code></td>
+                        <td>Prompt quick-search</td>
+                    </tr>
+                    <tr>
+                        <td><code>SHOT_STATS</code></td>
+                        <td>Shot-distribution stats</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2 data-i18n="features-agents-title">Agents, Memory & Planning</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Flag</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>BUILTIN_EXPLORE_PLAN_AGENTS</code></td>
+                        <td>Built-in explore/plan agent presets</td>
+                    </tr>
+                    <tr>
+                        <td><code>VERIFICATION_AGENT</code></td>
+                        <td>Verification agent for task validation</td>
+                    </tr>
+                    <tr>
+                        <td><code>AGENT_TRIGGERS</code></td>
+                        <td>Local cron/trigger tools for background automation</td>
+                    </tr>
+                    <tr>
+                        <td><code>AGENT_TRIGGERS_REMOTE</code></td>
+                        <td>Remote trigger tool path</td>
+                    </tr>
+                    <tr>
+                        <td><code>EXTRACT_MEMORIES</code></td>
+                        <td>Post-query automatic memory extraction</td>
+                    </tr>
+                    <tr>
+                        <td><code>COMPACTION_REMINDERS</code></td>
+                        <td>Smart reminders around context compaction</td>
+                    </tr>
+                    <tr>
+                        <td><code>CACHED_MICROCOMPACT</code></td>
+                        <td>Cached microcompact state through query flows</td>
+                    </tr>
+                    <tr>
+                        <td><code>TEAMMEM</code></td>
+                        <td>Team-memory files and watcher hooks</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2 data-i18n="features-tools-title">Tools & Infrastructure</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Flag</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>BRIDGE_MODE</code></td>
+                        <td>IDE remote-control bridge (VS Code, JetBrains)</td>
+                    </tr>
+                    <tr>
+                        <td><code>BASH_CLASSIFIER</code></td>
+                        <td>Classifier-assisted bash permission decisions</td>
+                    </tr>
+                    <tr>
+                        <td><code>PROMPT_CACHE_BREAK_DETECTION</code></td>
+                        <td>Cache-break detection in compaction/query flow</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <hr>
+
+            <h2>Enabling Specific Features</h2>
+            <p>Build with specific feature flags:</p>
+            <div class="code-block">
+                <code># Enable just ultraplan and ultrathink<br>bun run ./scripts/build.ts --feature=ULTRAPLAN --feature=ULTRATHINK<br><br># Add a flag on top of the dev build<br>bun run ./scripts/build.ts --dev --feature=BRIDGE_MODE</code>
+            </div>
+
+            <hr>
+
+            <h2>Full Feature List</h2>
+            <p>For the complete audit of all 88 flags (54 working, 34 broken), see <a href="https://github.com/paoloanzn/free-code/blob/main/FEATURES.md" target="_blank">FEATURES.md</a> on GitHub.</p>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 free-code. <a href="https://github.com/paoloanzn/free-code" target="_blank" data-i18n="github-link">View on GitHub</a></p>
+        </div>
+    </footer>
+
+    <script src="translations.js"></script>
+    <script src="i18n.js"></script>
+</body>
+</html>
