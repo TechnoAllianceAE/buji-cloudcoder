@@ -1,4 +1,4 @@
-# BujiCloudCoder (bc2) vs Original Claude Code — SWOT Report
+# BujiCloudCoder (bc2) — SWOT Report
 
 **Prepared by:** TA Engineering
 **Date:** 2026-04-03
@@ -44,7 +44,7 @@
 
 ### 4. Maintainability
 - 3 dependencies vs 94 — drastically reduced supply chain risk
-- No circular dependency hacks (the TS codebase uses dynamic `require()` to break cycles)
+- No circular dependency hacks
 - No memoization caches to invalidate
 - No React rendering lifecycle to debug
 

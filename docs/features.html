@@ -3,174 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Features - free-code</title>
+    <title>Features - BujiCloudCoder</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <nav class="navbar">
         <div class="container nav-container">
-            <a href="index.html" class="logo">free-code</a>
+            <a href="index.html" class="logo">BujiCloudCoder</a>
             <div class="nav-links">
-                <a href="index.html" data-i18n="home">Home</a>
-                <a href="installation.html" data-i18n="install">Installation</a>
-                <a href="usage.html" data-i18n="usage">Usage</a>
-                <a href="providers.html" data-i18n="providers">Providers</a>
-                <a href="features.html" data-i18n="features">Features</a>
+                <a href="index.html">Home</a>
+                <a href="installation.html">Installation</a>
+                <a href="usage.html">Usage</a>
+                <a href="providers.html">Providers</a>
+                <a href="features.html">Features</a>
             </div>
-            <select id="language-selector" class="language-select">
-                <option value="en">English</option>
-                <option value="jp">日本語</option>
-                <option value="cn">中文</option>
-                <option value="hi">हिन्दी</option>
-                <option value="sa">العربية</option>
-            </select>
         </div>
     </nav>
-
-    <header class="page-header">
-        <div class="container">
-            <h1 data-i18n="features-title">Experimental Features</h1>
-        </div>
-    </header>
-
+    <div class="page-header"><h1>Features</h1></div>
     <main class="container">
         <div class="page-content">
-            <p data-i18n="features-intro">The full build enables all 54 working feature flags. Here are the highlights:</p>
-
-            <h2 data-i18n="features-ui-title">Interaction & UI</h2>
+            <h2>Tools (32 Built-in)</h2>
             <table>
-                <thead>
-                    <tr>
-                        <th>Flag</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>ULTRAPLAN</code></td>
-                        <td>Remote multi-agent planning on Claude Code web (Opus-class)</td>
-                    </tr>
-                    <tr>
-                        <td><code>ULTRATHINK</code></td>
-                        <td>Deep thinking mode -- type "ultrathink" to boost reasoning effort</td>
-                    </tr>
-                    <tr>
-                        <td><code>VOICE_MODE</code></td>
-                        <td>Push-to-talk voice input and dictation</td>
-                    </tr>
-                    <tr>
-                        <td><code>TOKEN_BUDGET</code></td>
-                        <td>Token budget tracking and usage warnings</td>
-                    </tr>
-                    <tr>
-                        <td><code>HISTORY_PICKER</code></td>
-                        <td>Interactive prompt history picker</td>
-                    </tr>
-                    <tr>
-                        <td><code>MESSAGE_ACTIONS</code></td>
-                        <td>Message action entrypoints in the UI</td>
-                    </tr>
-                    <tr>
-                        <td><code>QUICK_SEARCH</code></td>
-                        <td>Prompt quick-search</td>
-                    </tr>
-                    <tr>
-                        <td><code>SHOT_STATS</code></td>
-                        <td>Shot-distribution stats</td>
-                    </tr>
-                </tbody>
+                <tr><th>Tool</th><th>Description</th></tr>
+                <tr><td>Bash</td><td>Execute shell commands with timeout and security checks</td></tr>
+                <tr><td>Read</td><td>Read files with line numbers, offset, and limit</td></tr>
+                <tr><td>Edit</td><td>Exact string replacement in files</td></tr>
+                <tr><td>Write</td><td>Create or overwrite files</td></tr>
+                <tr><td>Glob</td><td>Find files by pattern</td></tr>
+                <tr><td>Grep</td><td>Regex search with ripgrep integration</td></tr>
+                <tr><td>WebFetch</td><td>Fetch URLs, convert HTML to text</td></tr>
+                <tr><td>WebSearch</td><td>Search via Brave or SearXNG</td></tr>
+                <tr><td>Agent</td><td>Spawn sub-agents with own context (sync or background)</td></tr>
+                <tr><td>TaskCreate/Get/Update/List/Stop/Output</td><td>Task management</td></tr>
+                <tr><td>EnterPlanMode / ExitPlanMode</td><td>Dry-run planning mode</td></tr>
+                <tr><td>EnterWorktree / ExitWorktree</td><td>Git worktree isolation</td></tr>
+                <tr><td>SendMessage / TeamCreate / TeamDelete</td><td>Multi-agent team coordination</td></tr>
+                <tr><td>CronCreate / CronDelete / CronList</td><td>Scheduled jobs</td></tr>
+                <tr><td>Skill</td><td>Invoke custom skills from .bc2/skills/</td></tr>
+                <tr><td>ListMcpResources / ReadMcpResource / McpAuth</td><td>MCP integration</td></tr>
+                <tr><td>LSP</td><td>Language server protocol (definition, references, hover)</td></tr>
+                <tr><td>NotebookEdit</td><td>Jupyter notebook cell editing</td></tr>
+                <tr><td>PowerShell</td><td>PowerShell on Windows</td></tr>
+                <tr><td>TodoWrite</td><td>Todo list management</td></tr>
+                <tr><td>AskUserQuestion</td><td>Pause and prompt user</td></tr>
+                <tr><td>ToolSearch</td><td>Search available tools by keyword</td></tr>
             </table>
 
-            <h2 data-i18n="features-agents-title">Agents, Memory & Planning</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Flag</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>BUILTIN_EXPLORE_PLAN_AGENTS</code></td>
-                        <td>Built-in explore/plan agent presets</td>
-                    </tr>
-                    <tr>
-                        <td><code>VERIFICATION_AGENT</code></td>
-                        <td>Verification agent for task validation</td>
-                    </tr>
-                    <tr>
-                        <td><code>AGENT_TRIGGERS</code></td>
-                        <td>Local cron/trigger tools for background automation</td>
-                    </tr>
-                    <tr>
-                        <td><code>AGENT_TRIGGERS_REMOTE</code></td>
-                        <td>Remote trigger tool path</td>
-                    </tr>
-                    <tr>
-                        <td><code>EXTRACT_MEMORIES</code></td>
-                        <td>Post-query automatic memory extraction</td>
-                    </tr>
-                    <tr>
-                        <td><code>COMPACTION_REMINDERS</code></td>
-                        <td>Smart reminders around context compaction</td>
-                    </tr>
-                    <tr>
-                        <td><code>CACHED_MICROCOMPACT</code></td>
-                        <td>Cached microcompact state through query flows</td>
-                    </tr>
-                    <tr>
-                        <td><code>TEAMMEM</code></td>
-                        <td>Team-memory files and watcher hooks</td>
-                    </tr>
-                </tbody>
-            </table>
+            <h2>Engine</h2>
+            <ul>
+                <li>Streaming SSE API client with retry and exponential backoff</li>
+                <li>Model fallback on 529 (overloaded)</li>
+                <li>Auto-compact context when approaching token limits</li>
+                <li>Micro-compact for lightweight token reduction</li>
+                <li>Structured output via JSON schema enforcement</li>
+                <li>Extended thinking with budget control</li>
+                <li>Prompt caching headers</li>
+                <li>Cost tracking with per-model USD breakdown</li>
+                <li>Session persistence and resume</li>
+                <li>File history with undo/rewind</li>
+                <li>Git integration (repo, branch, diff detection)</li>
+            </ul>
 
-            <h2 data-i18n="features-tools-title">Tools & Infrastructure</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Flag</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>BRIDGE_MODE</code></td>
-                        <td>IDE remote-control bridge (VS Code, JetBrains)</td>
-                    </tr>
-                    <tr>
-                        <td><code>BASH_CLASSIFIER</code></td>
-                        <td>Classifier-assisted bash permission decisions</td>
-                    </tr>
-                    <tr>
-                        <td><code>PROMPT_CACHE_BREAK_DETECTION</code></td>
-                        <td>Cache-break detection in compaction/query flow</td>
-                    </tr>
-                </tbody>
-            </table>
+            <h2>Extensibility</h2>
+            <ul>
+                <li>Skill system &mdash; load from <code>.bc2/skills/</code> with YAML frontmatter</li>
+                <li>Plugin system &mdash; load from <code>.bc2/plugins/</code> with plugin.json manifests</li>
+                <li>MCP client &mdash; stdio, HTTP, and SSE transports with resource discovery</li>
+                <li>Hook system &mdash; pre/post tool hooks from settings.json</li>
+                <li>Memory system &mdash; persistent memories across sessions</li>
+                <li>Settings hierarchy &mdash; managed &gt; user &gt; project &gt; env &gt; defaults</li>
+            </ul>
 
-            <hr>
+            <h2>Security</h2>
+            <ul>
+                <li>6 permission modes (default, bypass, plan, dontAsk, acceptEdits, auto)</li>
+                <li>Dangerous command detection (rm -rf, git push --force, curl|sh, etc.)</li>
+                <li>Sensitive file protection (.env, credentials, .ssh/*, *.pem, *.key)</li>
+                <li>Allow/deny rules with pattern matching</li>
+                <li>Bridge server authentication via X-BC2-Token header</li>
+                <li>38 permission tests covering all security paths</li>
+            </ul>
 
-            <h2>Enabling Specific Features</h2>
-            <p>Build with specific feature flags:</p>
-            <div class="code-block">
-                <code># Enable just ultraplan and ultrathink<br>bun run ./scripts/build.ts --feature=ULTRAPLAN --feature=ULTRATHINK<br><br># Add a flag on top of the dev build<br>bun run ./scripts/build.ts --dev --feature=BRIDGE_MODE</code>
-            </div>
-
-            <hr>
-
-            <h2>Full Feature List</h2>
-            <p>For the complete audit of all 88 flags (54 working, 34 broken), see <a href="https://github.com/paoloanzn/free-code/blob/main/FEATURES.md" target="_blank">FEATURES.md</a> on GitHub.</p>
+            <h2>Additional Features</h2>
+            <ul>
+                <li>IDE bridge server (HTTP API for VS Code / JetBrains)</li>
+                <li>Voice engine (SoX recording + platform TTS)</li>
+                <li>OAuth with PKCE and auto-refresh</li>
+                <li>Background task manager with goroutines</li>
+                <li>Keybinding system (configurable, vim/emacs modes)</li>
+                <li>Markdown-to-ANSI renderer and HTML export</li>
+                <li>Feature flags system (24 flags, env-overridable)</li>
+                <li>Update checker (GitHub releases)</li>
+                <li>SSH remote sessions</li>
+                <li>System diagnostics (/doctor)</li>
+            </ul>
         </div>
     </main>
-
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 free-code. <a href="https://github.com/paoloanzn/free-code" target="_blank" data-i18n="github-link">View on GitHub</a></p>
-        </div>
-    </footer>
-
-    <script src="translations.js"></script>
-    <script src="i18n.js"></script>
+    <footer><div class="container"><p>BujiCloudCoder (bc2) &mdash; <a href="https://github.com/TechnoAllianceAE/buji-cloudcoder">GitHub</a></p></div></footer>
 </body>
 </html>

@@ -3,149 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Usage - free-code</title>
+    <title>Usage - BujiCloudCoder</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <nav class="navbar">
         <div class="container nav-container">
-            <a href="index.html" class="logo">free-code</a>
+            <a href="index.html" class="logo">BujiCloudCoder</a>
             <div class="nav-links">
-                <a href="index.html" data-i18n="home">Home</a>
-                <a href="installation.html" data-i18n="install">Installation</a>
-                <a href="usage.html" data-i18n="usage">Usage</a>
-                <a href="providers.html" data-i18n="providers">Providers</a>
-                <a href="features.html" data-i18n="features">Features</a>
+                <a href="index.html">Home</a>
+                <a href="installation.html">Installation</a>
+                <a href="usage.html">Usage</a>
+                <a href="providers.html">Providers</a>
+                <a href="features.html">Features</a>
             </div>
-            <select id="language-selector" class="language-select">
-                <option value="en">English</option>
-                <option value="jp">日本語</option>
-                <option value="cn">中文</option>
-                <option value="hi">हिन्दी</option>
-                <option value="sa">العربية</option>
-            </select>
         </div>
     </nav>
-
-    <header class="page-header">
-        <div class="container">
-            <h1 data-i18n="usage-title">Usage Guide</h1>
-        </div>
-    </header>
-
+    <div class="page-header"><h1>Usage Guide</h1></div>
     <main class="container">
         <div class="page-content">
-            <p data-i18n="usage-intro">This guide covers everything from basic commands to advanced features.</p>
+            <h2>Modes</h2>
+            <h3>Interactive REPL</h3>
+            <div class="code-block"><code>./bc2</code></div>
+            <h3>One-Shot</h3>
+            <div class="code-block"><code>./bc2 -p "explain cmd/bc2/main.go"</code></div>
+            <h3>Piped Input</h3>
+            <div class="code-block"><code>echo "list Go files" | ./bc2</code></div>
+            <h3>JSON Output</h3>
+            <div class="code-block"><code>./bc2 -p "summarize this repo" -json</code></div>
+            <h3>Structured Output</h3>
+            <div class="code-block"><code>./bc2 -p "list functions" -schema '{"type":"object","properties":{"fns":{"type":"array"}}}'</code></div>
 
-            <h2 data-i18n="usage-basic-title">Basic Commands</h2>
-            <p data-i18n="usage-basic-desc">Start using free-code with these essential commands:</p>
-
-            <h3 data-i18n="usage-interactive">Interactive Mode</h3>
-            <div class="code-block">
-                <code>./cli-dev</code>
-            </div>
-            <p>Starts an interactive chat session where you can have conversations with the AI.</p>
-
-            <h3 data-i18n="usage-oneshot">One-shot Mode</h3>
-            <div class="code-block">
-                <code>./cli-dev -p "what files are in this directory?"</code>
-            </div>
-            <p>Ask a single question and get an immediate response.</p>
-
-            <h3 data-i18n="usage-model">Specify a Model</h3>
-            <div class="code-block">
-                <code>./cli-dev --model claude-opus-4-6</code>
-            </div>
-
-            <h3 data-i18n="usage-login">OAuth Login</h3>
-            <div class="code-block">
-                <code>./cli-dev /login</code>
-            </div>
-            <p>Authenticate with your model provider using OAuth.</p>
-
-            <hr>
-
-            <h2 data-i18n="usage-beginner-title">For Non-CLI Users</h2>
-            <p data-i18n="usage-beginner-desc">If you're new to command-line tools, here's what you need to know:</p>
-            <ul>
-                <li data-i18n="usage-beginner-1">Everything you type after './cli' is a command or option</li>
-                <li data-i18n="usage-beginner-2">The '-p' flag lets you ask a question directly</li>
-                <li data-i18n="usage-beginner-3">Running './cli' alone starts interactive mode where you can chat</li>
-                <li data-i18n="usage-beginner-4">Press Ctrl+C to exit at any time</li>
-            </ul>
-
-            <hr>
-
-            <h2>Common Tasks</h2>
-
-            <h3>Reading Files</h3>
-            <p>In interactive mode, just ask:</p>
-            <div class="code-block">
-                <code>Can you read the contents of src/main.ts?</code>
-            </div>
-
-            <h3>Editing Files</h3>
-            <p>Ask the AI to make changes:</p>
-            <div class="code-block">
-                <code>Add error handling to the fetchUser function</code>
-            </div>
-
-            <h3>Running Commands</h3>
-            <p>The AI can execute shell commands with your permission:</p>
-            <div class="code-block">
-                <code>Run npm install and tell me what happens</code>
-            </div>
-
-            <h3>Searching Code</h3>
-            <p>Find patterns in your codebase:</p>
-            <div class="code-block">
-                <code>Find all uses of useEffect in the project</code>
-            </div>
-
-            <hr>
-
-            <h2>Environment Variables</h2>
-            <p>Configure free-code using environment variables:</p>
+            <h2>CLI Flags</h2>
             <table>
-                <thead>
-                    <tr>
-                        <th>Variable</th>
-                        <th>Purpose</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>ANTHROPIC_API_KEY</code></td>
-                        <td>Anthropic API key</td>
-                    </tr>
-                    <tr>
-                        <td><code>CLAUDE_CODE_USE_OPENAI=1</code></td>
-                        <td>Use OpenAI Codex provider</td>
-                    </tr>
-                    <tr>
-                        <td><code>CLAUDE_CODE_USE_BEDROCK=1</code></td>
-                        <td>Use AWS Bedrock provider</td>
-                    </tr>
-                    <tr>
-                        <td><code>CLAUDE_CODE_USE_VERTEX=1</code></td>
-                        <td>Use Google Vertex AI provider</td>
-                    </tr>
-                    <tr>
-                        <td><code>CLAUDE_CODE_USE_FOUNDRY=1</code></td>
-                        <td>Use Anthropic Foundry provider</td>
-                    </tr>
-                </tbody>
+                <tr><th>Flag</th><th>Description</th></tr>
+                <tr><td><code>-p "prompt"</code></td><td>Non-interactive prompt</td></tr>
+                <tr><td><code>-model name</code></td><td>Override model</td></tr>
+                <tr><td><code>-max-tokens N</code></td><td>Max output tokens</td></tr>
+                <tr><td><code>-thinking</code></td><td>Enable extended thinking</td></tr>
+                <tr><td><code>-permissions mode</code></td><td>default / bypassPermissions / plan</td></tr>
+                <tr><td><code>-json</code></td><td>JSON output</td></tr>
+                <tr><td><code>-schema file</code></td><td>Structured output schema</td></tr>
+                <tr><td><code>-system "text"</code></td><td>Custom system prompt</td></tr>
+                <tr><td><code>-doctor</code></td><td>Run diagnostics</td></tr>
             </table>
+
+            <h2>Slash Commands</h2>
+            <table>
+                <tr><th>Command</th><th>Description</th></tr>
+                <tr><td><code>/help</code></td><td>Show commands</td></tr>
+                <tr><td><code>/model [name]</code></td><td>Get/set model</td></tr>
+                <tr><td><code>/cost</code></td><td>Cost breakdown</td></tr>
+                <tr><td><code>/compact</code></td><td>Compress context</td></tr>
+                <tr><td><code>/diff</code></td><td>File diffs</td></tr>
+                <tr><td><code>/resume</code></td><td>Resume session</td></tr>
+                <tr><td><code>/skills</code></td><td>List skills</td></tr>
+                <tr><td><code>/plugins</code></td><td>List plugins</td></tr>
+                <tr><td><code>/memory</code></td><td>Memory index</td></tr>
+                <tr><td><code>/config</code></td><td>Settings</td></tr>
+                <tr><td><code>/team</code></td><td>Teammates</td></tr>
+                <tr><td><code>/doctor</code></td><td>Diagnostics</td></tr>
+                <tr><td><code>/login</code></td><td>OAuth login</td></tr>
+                <tr><td><code>/exit</code></td><td>Exit</td></tr>
+            </table>
+
+            <h2>Project Instructions</h2>
+            <p>Create <code>BC2.md</code> in your project root. It is loaded into the system prompt automatically.</p>
+
+            <h2>Configuration</h2>
+            <p>User: <code>~/.bc2/settings.json</code> | Project: <code>.bc2/settings.json</code></p>
+            <p>Priority: managed &gt; user &gt; project &gt; env &gt; defaults</p>
         </div>
     </main>
-
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 free-code. <a href="https://github.com/paoloanzn/free-code" target="_blank" data-i18n="github-link">View on GitHub</a></p>
-        </div>
-    </footer>
-
-    <script src="translations.js"></script>
-    <script src="i18n.js"></script>
+    <footer><div class="container"><p>BujiCloudCoder (bc2) &mdash; <a href="https://github.com/TechnoAllianceAE/buji-cloudcoder">GitHub</a></p></div></footer>
 </body>
 </html>

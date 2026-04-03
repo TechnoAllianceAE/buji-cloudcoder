@@ -1,6 +1,6 @@
 # BujiCloudCoder (bc2) — Development Phases
 
-Open-source AI coding CLI by TA. Porting roadmap from TypeScript to Go.
+Open-source AI coding CLI by TA. Development roadmap.
 
 **Current stats:** 51 Go files, ~9,300 lines of code, 11MB binary
 

@@ -3,77 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>free-code - The Free Build of Claude Code</title>
+    <title>BujiCloudCoder (bc2) - AI Coding CLI by TA</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <nav class="navbar">
         <div class="container nav-container">
-            <a href="index.html" class="logo">free-code</a>
+            <a href="index.html" class="logo">BujiCloudCoder</a>
             <div class="nav-links">
-                <a href="index.html" data-i18n="home">Home</a>
-                <a href="installation.html" data-i18n="install">Installation</a>
-                <a href="usage.html" data-i18n="usage">Usage</a>
-                <a href="providers.html" data-i18n="providers">Providers</a>
-                <a href="features.html" data-i18n="features">Features</a>
+                <a href="index.html">Home</a>
+                <a href="installation.html">Installation</a>
+                <a href="usage.html">Usage</a>
+                <a href="providers.html">Providers</a>
+                <a href="features.html">Features</a>
             </div>
             <select id="language-selector" class="language-select">
                 <option value="en">English</option>
-                <option value="jp">日本語</option>
-                <option value="cn">中文</option>
-                <option value="hi">हिन्दी</option>
-                <option value="sa">العربية</option>
+                <option value="jp">Japanese</option>
+                <option value="cn">Chinese</option>
+                <option value="hi">Hindi</option>
+                <option value="sa">Arabic</option>
             </select>
         </div>
     </nav>
-
     <header class="hero">
         <div class="container">
-            <h1 data-i18n="hero-title">The Free Build of Claude Code</h1>
-            <p data-i18n="hero-subtitle">All telemetry stripped. All guardrails removed. All experimental features unlocked.</p>
-            <a href="installation.html" class="btn btn-primary" data-i18n="get-started">Get Started</a>
+            <h1 data-i18n="hero_title">BujiCloudCoder (bc2)</h1>
+            <p data-i18n="hero_subtitle">Open-source AI coding CLI built in Go. Single binary, zero dependencies, 32 tools.</p>
+            <a href="installation.html" class="btn btn-primary">Get Started</a>
         </div>
     </header>
-
     <main class="container">
-        <section class="features-grid">
+        <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon">🔒</div>
-                <h3 data-i18n="feature-privacy-title">Privacy First</h3>
-                <p data-i18n="feature-privacy-desc">No telemetry, no analytics, no phone-home. Your code stays on your machine.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">⚡</div>
-                <h3 data-i18n="feature-features-title">54 Features Unlocked</h3>
-                <p data-i18n="feature-features-desc">Access all experimental features including Voice Mode, UltraPlan, and Bridge Mode.</p>
+                <div class="feature-icon">&#9889;</div>
+                <h3>Lightning Fast</h3>
+                <p>Single 12MB Go binary. Under 50ms startup. 10x less RAM than Node.js alternatives.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">🌐</div>
-                <h3 data-i18n="feature-providers-title">5 Providers</h3>
-                <p data-i18n="feature-providers-desc">Choose from Anthropic, OpenAI Codex, AWS Bedrock, Google Vertex, or Foundry.</p>
+                <div class="feature-icon">&#128295;</div>
+                <h3>32 Built-in Tools</h3>
+                <p>Bash, file ops, web search, agents, tasks, MCP, LSP, cron, team coordination, and more.</p>
             </div>
-        </section>
-
-        <section class="quick-start">
-            <h2 data-i18n="quick-start-title">Quick Start</h2>
-            <div class="code-block">
-                <code>curl -fsSL https://raw.githubusercontent.com/paoloanzn/free-code/main/install.sh | bash</code>
+            <div class="feature-card">
+                <div class="feature-icon">&#129302;</div>
+                <h3>Real Sub-Agents</h3>
+                <p>Spawn autonomous sub-agents with their own conversation context, tools, and token budgets.</p>
             </div>
-            <p data-i18n="quick-start-desc">One command to install everything.</p>
-        </section>
-
-        <section class="about">
-            <h2 data-i18n="about-title">What is free-code?</h2>
-            <p data-i18n="about-desc">free-code is a clean, buildable fork of Anthropic's Claude Code CLI with all telemetry removed, security guardrails stripped, and all 54 working experimental features unlocked. Built for developers who want full control over their AI coding assistant.</p>
-        </section>
+            <div class="feature-card">
+                <div class="feature-icon">&#128268;</div>
+                <h3>MCP Support</h3>
+                <p>Connect to MCP servers via stdio, HTTP, or SSE. Discover tools and resources dynamically.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#128274;</div>
+                <h3>Security First</h3>
+                <p>Permission system with dangerous command detection, path protection, and authenticated bridge API.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">&#127760;</div>
+                <h3>Multi-Provider</h3>
+                <p>Works with Anthropic, AWS Bedrock, Google Vertex, Azure Foundry, and OpenAI-compatible APIs.</p>
+            </div>
+        </div>
+        <div class="quick-start">
+            <h2>Quick Start</h2>
+            <div class="code-block"><code>git clone https://github.com/TechnoAllianceAE/buji-cloudcoder.git
+cd buji-cloudcoder
+go build -o bc2 ./cmd/bc2/
+export ANTHROPIC_API_KEY=sk-ant-...
+./bc2</code></div>
+        </div>
+        <div class="about">
+            <h2>Built by TA</h2>
+            <p>BujiCloudCoder is an open-source project by TechnoAllianceAE. Written from scratch in Go for developers who want a fast, portable, and extensible AI coding assistant.</p>
+        </div>
     </main>
-
     <footer>
         <div class="container">
-            <p>&copy; 2026 free-code. <a href="https://github.com/paoloanzn/free-code" target="_blank" data-i18n="github-link">View on GitHub</a></p>
+            <p>BujiCloudCoder (bc2) &mdash; Open Source by <a href="https://github.com/TechnoAllianceAE">TA</a> | <a href="https://github.com/TechnoAllianceAE/buji-cloudcoder">GitHub</a></p>
         </div>
     </footer>
-
     <script src="translations.js"></script>
     <script src="i18n.js"></script>
 </body>

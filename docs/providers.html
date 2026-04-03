@@ -3,165 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Providers - free-code</title>
+    <title>Providers - BujiCloudCoder</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <nav class="navbar">
         <div class="container nav-container">
-            <a href="index.html" class="logo">free-code</a>
+            <a href="index.html" class="logo">BujiCloudCoder</a>
             <div class="nav-links">
-                <a href="index.html" data-i18n="home">Home</a>
-                <a href="installation.html" data-i18n="install">Installation</a>
-                <a href="usage.html" data-i18n="usage">Usage</a>
-                <a href="providers.html" data-i18n="providers">Providers</a>
-                <a href="features.html" data-i18n="features">Features</a>
+                <a href="index.html">Home</a>
+                <a href="installation.html">Installation</a>
+                <a href="usage.html">Usage</a>
+                <a href="providers.html">Providers</a>
+                <a href="features.html">Features</a>
             </div>
-            <select id="language-selector" class="language-select">
-                <option value="en">English</option>
-                <option value="jp">日本語</option>
-                <option value="cn">中文</option>
-                <option value="hi">हिन्दी</option>
-                <option value="sa">العربية</option>
-            </select>
         </div>
     </nav>
-
-    <header class="page-header">
-        <div class="container">
-            <h1 data-i18n="providers-title">Model Providers</h1>
-        </div>
-    </header>
-
+    <div class="page-header"><h1>API Providers</h1></div>
     <main class="container">
         <div class="page-content">
-            <p data-i18n="providers-intro">free-code supports five different API providers. Choose the one that fits your needs.</p>
+            <p>bc2 supports multiple LLM API providers. Set the appropriate environment variables to switch.</p>
 
-            <h2 data-i18n="providers-anthropic-title">Anthropic (Direct API)</h2>
-            <p data-i18n="providers-anthropic-desc">Use Anthropic's first-party API directly. This is the default provider.</p>
+            <h2>Anthropic (Default)</h2>
+            <div class="code-block"><code>export ANTHROPIC_API_KEY=sk-ant-api03-...</code></div>
             <table>
-                <thead>
-                    <tr>
-                        <th>Model</th>
-                        <th>ID</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Claude Opus 4.6</td>
-                        <td><code>claude-opus-4-6</code></td>
-                    </tr>
-                    <tr>
-                        <td>Claude Sonnet 4.6</td>
-                        <td><code>claude-sonnet-4-6</code></td>
-                    </tr>
-                    <tr>
-                        <td>Claude Haiku 4.5</td>
-                        <td><code>claude-haiku-4-5</code></td>
-                    </tr>
-                </tbody>
+                <tr><th>Variable</th><th>Description</th></tr>
+                <tr><td><code>ANTHROPIC_API_KEY</code></td><td>API key</td></tr>
+                <tr><td><code>ANTHROPIC_BASE_URL</code></td><td>Custom endpoint (optional)</td></tr>
+                <tr><td><code>ANTHROPIC_DEFAULT_MODEL</code></td><td>Override default model</td></tr>
             </table>
-            <div class="code-block">
-                <code>export ANTHROPIC_API_KEY="your-api-key"</code>
-            </div>
 
-            <h2 data-i18n="providers-openai-title">OpenAI Codex</h2>
-            <p data-i18n="providers-openai-desc">Use OpenAI's Codex models for code generation. Requires a Codex subscription.</p>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Model</th>
-                        <th>ID</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>GPT-5.3 Codex (recommended)</td>
-                        <td><code>gpt-5.3-codex</code></td>
-                    </tr>
-                    <tr>
-                        <td>GPT-5.4</td>
-                        <td><code>gpt-5.4</code></td>
-                    </tr>
-                    <tr>
-                        <td>GPT-5.4 Mini</td>
-                        <td><code>gpt-5.4-mini</code></td>
-                    </tr>
-                </tbody>
-            </table>
-            <div class="code-block">
-                <code>export CLAUDE_CODE_USE_OPENAI=1</code>
-            </div>
+            <h2>AWS Bedrock</h2>
+            <div class="code-block"><code>export CLAUDE_CODE_USE_BEDROCK=true
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_REGION=us-east-1</code></div>
 
-            <h2 data-i18n="providers-bedrock-title">AWS Bedrock</h2>
-            <p data-i18n="providers-bedrock-desc">Route requests through your AWS account via Amazon Bedrock.</p>
-            <div class="code-block">
-                <code>export CLAUDE_CODE_USE_BEDROCK=1<br>export AWS_REGION="us-east-1"</code>
-            </div>
-            <p>Uses your standard AWS credentials (environment variables, <code>~/.aws/config</code>, or IAM role).</p>
+            <h2>Google Vertex AI</h2>
+            <div class="code-block"><code>export CLAUDE_CODE_USE_VERTEX=true
+export ANTHROPIC_VERTEX_PROJECT_ID=my-project
+export CLOUD_ML_REGION=us-east5</code></div>
 
-            <h2 data-i18n="providers-vertex-title">Google Cloud Vertex AI</h2>
-            <p data-i18n="providers-vertex-desc">Route requests through your GCP project via Vertex AI.</p>
-            <div class="code-block">
-                <code>export CLAUDE_CODE_USE_VERTEX=1</code>
-            </div>
-            <p>Uses Google Cloud Application Default Credentials (<code>gcloud auth application-default login</code>).</p>
+            <h2>Azure Foundry</h2>
+            <div class="code-block"><code>export CLAUDE_CODE_USE_FOUNDRY=true
+export ANTHROPIC_FOUNDRY_API_KEY=...
+export ANTHROPIC_FOUNDRY_RESOURCE=my-resource</code></div>
 
-            <h2 data-i18n="providers-foundry-title">Anthropic Foundry</h2>
-            <p data-i18n="providers-foundry-desc">Use Anthropic Foundry for dedicated deployments.</p>
-            <div class="code-block">
-                <code>export CLAUDE_CODE_USE_FOUNDRY=1<br>export ANTHROPIC_FOUNDRY_API_KEY="..."</code>
-            </div>
+            <h2>OpenAI-Compatible</h2>
+            <div class="code-block"><code>export CLAUDE_CODE_USE_OPENAI=true
+export OPENAI_API_KEY=...
+export OPENAI_BASE_URL=https://api.openai.com/v1</code></div>
+            <p>Works with any OpenAI-compatible API (OpenAI, Ollama, LM Studio, vLLM, etc.)</p>
 
-            <hr>
-
-            <h2>Provider Comparison</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Provider</th>
-                        <th>Env Variable</th>
-                        <th>Auth Method</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Anthropic (default)</td>
-                        <td>--</td>
-                        <td><code>ANTHROPIC_API_KEY</code> or OAuth</td>
-                    </tr>
-                    <tr>
-                        <td>OpenAI Codex</td>
-                        <td><code>CLAUDE_CODE_USE_OPENAI=1</code></td>
-                        <td>OAuth via OpenAI</td>
-                    </tr>
-                    <tr>
-                        <td>AWS Bedrock</td>
-                        <td><code>CLAUDE_CODE_USE_BEDROCK=1</code></td>
-                        <td>AWS credentials</td>
-                    </tr>
-                    <tr>
-                        <td>Google Vertex AI</td>
-                        <td><code>CLAUDE_CODE_USE_VERTEX=1</code></td>
-                        <td><code>gcloud</code> ADC</td>
-                    </tr>
-                    <tr>
-                        <td>Anthropic Foundry</td>
-                        <td><code>CLAUDE_CODE_USE_FOUNDRY=1</code></td>
-                        <td><code>ANTHROPIC_FOUNDRY_API_KEY</code></td>
-                    </tr>
-                </tbody>
-            </table>
+            <h2>Provider Detection</h2>
+            <p>bc2 checks environment variables in this order: Bedrock &rarr; Vertex &rarr; Foundry &rarr; OpenAI &rarr; Anthropic (default). The first matching provider is used.</p>
         </div>
     </main>
-
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 free-code. <a href="https://github.com/paoloanzn/free-code" target="_blank" data-i18n="github-link">View on GitHub</a></p>
-        </div>
-    </footer>
-
-    <script src="translations.js"></script>
-    <script src="i18n.js"></script>
+    <footer><div class="container"><p>BujiCloudCoder (bc2) &mdash; <a href="https://github.com/TechnoAllianceAE/buji-cloudcoder">GitHub</a></p></div></footer>
 </body>
 </html>

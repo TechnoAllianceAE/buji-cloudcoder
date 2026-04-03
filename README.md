@@ -106,7 +106,7 @@ internal/utils/         — UUID, path, file helpers
 
 ## Development
 
-See [DEV_PHASES.md](DEV_PHASES.md) for the full porting roadmap and feature status.
+See [DEV_PHASES.md](DEV_PHASES.md) for the full development roadmap and feature status.
 
 ## License
 
