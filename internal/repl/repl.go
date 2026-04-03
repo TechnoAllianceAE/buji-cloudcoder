@@ -12,6 +12,7 @@ import (
 
 	"github.com/TechnoAllianceAE/buji-cloudcoder/internal/config"
 	"github.com/TechnoAllianceAE/buji-cloudcoder/internal/engine"
+	"github.com/TechnoAllianceAE/buji-cloudcoder/internal/tools"
 	"github.com/TechnoAllianceAE/buji-cloudcoder/internal/types"
 )
 
@@ -318,7 +319,64 @@ func (r *REPL) handleCommand(input string) bool {
 
 	case "/plan":
 		colorSuccess.Println("Entering plan mode. Tool calls will be shown but not executed.")
-		return false // Let it fall through as a prompt
+		return false
+
+	case "/skills":
+		r.handleSkills()
+		return true
+
+	case "/plugins":
+		pm := engine.NewPluginManager()
+		fmt.Println(pm.FormatPluginList())
+		return true
+
+	case "/memory":
+		r.handleMemory(parts)
+		return true
+
+	case "/config":
+		r.handleConfig(parts)
+		return true
+
+	case "/permissions":
+		fmt.Println("Permission mode: " + r.cfg.PermissionMode)
+		fmt.Println("\nAvailable modes:")
+		fmt.Println("  default          - Ask for non-read-only operations")
+		fmt.Println("  bypassPermissions - Allow all operations")
+		fmt.Println("  plan             - Dry-run mode (show but don't execute)")
+		fmt.Println("  acceptEdits      - Auto-allow file edits")
+		return true
+
+	case "/mcp":
+		fmt.Println("MCP servers are configured in ~/.bc2/settings.json under 'mcpServers'.")
+		fmt.Println("Use ListMcpResources and ReadMcpResource tools to interact with servers.")
+		return true
+
+	case "/team":
+		fmt.Println(tools.ListTeammates())
+		return true
+
+	case "/tasks":
+		bgMgr := engine.GetBackgroundTaskManager()
+		fmt.Println(bgMgr.FormatTaskList())
+		return true
+
+	case "/login":
+		r.handleLogin()
+		return true
+
+	case "/logout":
+		svc := engine.NewOAuthService(engine.DefaultOAuthConfig())
+		if err := svc.Logout(); err != nil {
+			colorError.Printf("Logout failed: %v\n", err)
+		} else {
+			colorSuccess.Println("Logged out successfully.")
+		}
+		return true
+
+	case "/version":
+		fmt.Println("bc2 v0.2.0")
+		return true
 
 	case "/exit", "/quit":
 		_ = r.engine.SaveSession()
@@ -435,6 +493,97 @@ func (r *REPL) handleExport(parts []string) {
 	colorSuccess.Printf("Exported to: %s\n", exportPath)
 }
 
+func (r *REPL) handleSkills() {
+	sl := engine.NewSkillLoader()
+	skills := sl.GetSkills()
+	if len(skills) == 0 {
+		fmt.Println("No skills found. Add skills to ~/.bc2/skills/ or .bc2/skills/")
+		return
+	}
+	fmt.Println("Available Skills:")
+	for name, skill := range skills {
+		desc := skill.Description
+		if desc == "" {
+			desc = "(no description)"
+		}
+		fmt.Printf("  /%s — %s [%s]\n", name, desc, skill.Source)
+	}
+}
+
+func (r *REPL) handleMemory(parts []string) {
+	mem := engine.NewMemoryStore(config.GetCWD())
+	if len(parts) > 1 && parts[1] == "list" {
+		memories, err := mem.Load()
+		if err != nil {
+			colorError.Printf("Error: %v\n", err)
+			return
+		}
+		if len(memories) == 0 {
+			fmt.Println("No memories stored.")
+			return
+		}
+		fmt.Println("Memories:")
+		for _, m := range memories {
+			fmt.Printf("  [%s] %s — %s\n", m.Type, m.Name, m.Description)
+		}
+		return
+	}
+	// Show index
+	idx := mem.GetIndex()
+	if idx == "" {
+		fmt.Println("No memories. Memories are automatically created during conversations.")
+	} else {
+		fmt.Println("Memory Index:")
+		fmt.Println(idx)
+	}
+}
+
+func (r *REPL) handleConfig(parts []string) {
+	sh := engine.NewSettingsHierarchy(config.GetCWD())
+	if len(parts) > 2 {
+		// /config set key value
+		if parts[1] == "set" {
+			key := parts[2]
+			val := strings.Join(parts[3:], " ")
+			sh.Set(key, val)
+			_ = sh.SaveUser()
+			colorSuccess.Printf("Set %s = %s\n", key, val)
+			return
+		}
+		// /config get key
+		if parts[1] == "get" {
+			val, ok := sh.Get(parts[2])
+			if ok {
+				fmt.Printf("%s = %v\n", parts[2], val)
+			} else {
+				fmt.Printf("%s: not set\n", parts[2])
+			}
+			return
+		}
+	}
+	// Show all settings
+	merged := sh.GetAllMerged()
+	if len(merged) == 0 {
+		fmt.Println("No settings configured.")
+		fmt.Println("Usage: /config set <key> <value>")
+		return
+	}
+	fmt.Println("Settings:")
+	for k, v := range merged {
+		fmt.Printf("  %s = %v\n", k, v)
+	}
+}
+
+func (r *REPL) handleLogin() {
+	svc := engine.NewOAuthService(engine.DefaultOAuthConfig())
+	tokens, err := svc.Login()
+	if err != nil {
+		colorError.Printf("Login failed: %v\n", err)
+		return
+	}
+	colorSuccess.Printf("Login successful! Token expires: %s\n", tokens.ExpiresAt.Format(time.RFC3339))
+}
+
 func (r *REPL) printWelcome() {
 	colorBold.Println("+-----------------------------------------+")
 	colorBold.Println("|         BujiCloudCoder (bc2)            |")
@@ -468,6 +617,17 @@ func (r *REPL) printHelp() {
 	fmt.Println("  /export [fmt]  Export conversation (text/markdown)")
 	fmt.Println("  /doctor        Run system diagnostics")
 	fmt.Println("  /plan          Enter plan mode (dry-run)")
+	fmt.Println("  /skills        List available skills")
+	fmt.Println("  /plugins       List installed plugins")
+	fmt.Println("  /memory [list] Show memory index or list")
+	fmt.Println("  /config        View/set configuration")
+	fmt.Println("  /mcp           MCP server info")
+	fmt.Println("  /team          List teammates")
+	fmt.Println("  /tasks         List background tasks")
+	fmt.Println("  /permissions   Show permission settings")
+	fmt.Println("  /login         OAuth login")
+	fmt.Println("  /logout        Clear saved credentials")
+	fmt.Println("  /version       Show version")
 	fmt.Println("  /clear         Clear conversation history")
 	fmt.Println("  /exit          Exit the program")
 	fmt.Println()
