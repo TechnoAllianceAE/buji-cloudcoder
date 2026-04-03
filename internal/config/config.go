@@ -10,11 +10,14 @@ import (
 
 // Config holds the global configuration
 type Config struct {
-	// API settings
+	// API settings (legacy single-provider)
 	APIKey    string `json:"api_key,omitempty"`
 	BaseURL   string `json:"base_url,omitempty"`
 	Model     string `json:"model,omitempty"`
 	MaxTokens int    `json:"max_tokens,omitempty"`
+
+	// Multi-provider API keys
+	APIKeys APIKeysConfig `json:"api_keys,omitempty"`
 
 	// Feature toggles
 	AutoCompact    bool `json:"auto_compact,omitempty"`
@@ -32,7 +35,23 @@ type Config struct {
 	DeniedTools    []string `json:"denied_tools,omitempty"`
 
 	// Session
-	SessionDir string `json:"session_dir,omitempty"`
+	SessionDir     string `json:"session_dir,omitempty"`
+	RequestTimeout int    `json:"request_timeout,omitempty"` // seconds
+}
+
+// APIKeysConfig holds per-provider API keys
+type APIKeysConfig struct {
+	Anthropic   string `json:"anthropic,omitempty"`
+	OpenAI      string `json:"openai,omitempty"`
+	OpenRouter  string `json:"openrouter,omitempty"`
+	Groq        string `json:"groq,omitempty"`
+	Together    string `json:"together,omitempty"`
+	Cerebras    string `json:"cerebras,omitempty"`
+	XAI         string `json:"xai,omitempty"`
+	Gemini      string `json:"gemini,omitempty"`
+	DeepSeek    string `json:"deepseek,omitempty"`
+	OllamaURL   string `json:"ollama,omitempty"`   // URL, not key (e.g., http://localhost:11434)
+	LlamaCppURL string `json:"llamacpp,omitempty"` // URL, not key
 }
 
 var (
@@ -67,15 +86,34 @@ func Load() *Config {
 			_ = json.Unmarshal(data, globalConfig)
 		}
 
-		// Environment overrides
-		if key := os.Getenv("ANTHROPIC_API_KEY"); key != "" {
-			globalConfig.APIKey = key
+		// Environment overrides for API keys
+		envOverride := func(target *string, envKey string) {
+			if val := os.Getenv(envKey); val != "" {
+				*target = val
+			}
 		}
-		if baseURL := os.Getenv("ANTHROPIC_BASE_URL"); baseURL != "" {
-			globalConfig.BaseURL = baseURL
-		}
-		if model := os.Getenv("ANTHROPIC_DEFAULT_MODEL"); model != "" {
-			globalConfig.Model = model
+
+		// Legacy single key
+		envOverride(&globalConfig.APIKey, "ANTHROPIC_API_KEY")
+		envOverride(&globalConfig.BaseURL, "ANTHROPIC_BASE_URL")
+		envOverride(&globalConfig.Model, "ANTHROPIC_DEFAULT_MODEL")
+
+		// Per-provider keys from env
+		envOverride(&globalConfig.APIKeys.Anthropic, "ANTHROPIC_API_KEY")
+		envOverride(&globalConfig.APIKeys.OpenAI, "OPENAI_API_KEY")
+		envOverride(&globalConfig.APIKeys.OpenRouter, "OPENROUTER_API_KEY")
+		envOverride(&globalConfig.APIKeys.Groq, "GROQ_API_KEY")
+		envOverride(&globalConfig.APIKeys.Together, "TOGETHER_API_KEY")
+		envOverride(&globalConfig.APIKeys.Cerebras, "CEREBRAS_API_KEY")
+		envOverride(&globalConfig.APIKeys.XAI, "XAI_API_KEY")
+		envOverride(&globalConfig.APIKeys.Gemini, "GOOGLE_AI_API_KEY")
+		envOverride(&globalConfig.APIKeys.DeepSeek, "DEEPSEEK_API_KEY")
+		envOverride(&globalConfig.APIKeys.OllamaURL, "OLLAMA_URL")
+		envOverride(&globalConfig.APIKeys.LlamaCppURL, "LLAMACPP_URL")
+
+		// Sync legacy api_key into per-provider if it looks like an Anthropic key
+		if globalConfig.APIKey != "" && globalConfig.APIKeys.Anthropic == "" {
+			globalConfig.APIKeys.Anthropic = globalConfig.APIKey
 		}
 	})
 	return globalConfig
@@ -87,7 +125,6 @@ func GetShell() string {
 		if shell := os.Getenv("SHELL"); shell != "" {
 			return shell
 		}
-		// Check for bash (Git Bash, WSL, etc.)
 		if _, err := os.Stat("C:\\Program Files\\Git\\bin\\bash.exe"); err == nil {
 			return "C:\\Program Files\\Git\\bin\\bash.exe"
 		}

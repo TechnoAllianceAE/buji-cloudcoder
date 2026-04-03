@@ -374,6 +374,24 @@ func (r *REPL) handleCommand(input string) bool {
 		}
 		return true
 
+	case "/providers":
+		providers := r.engine.GetProviders().ListProviders()
+		if len(providers) == 0 {
+			fmt.Println("No providers registered.")
+		} else {
+			fmt.Println("Registered Providers:")
+			for _, p := range providers {
+				fmt.Printf("  - %s\n", p)
+			}
+			fmt.Println()
+			fmt.Println("Use provider/model notation to switch:")
+			fmt.Println("  /model openai/gpt-4o")
+			fmt.Println("  /model ollama/llama3")
+			fmt.Println("  /model openrouter/meta-llama/llama-3-70b")
+			fmt.Println("  /model anthropic/claude-sonnet-4-20250514")
+		}
+		return true
+
 	case "/version":
 		fmt.Println("bc2 v0.2.0")
 		return true
@@ -624,6 +642,7 @@ func (r *REPL) printHelp() {
 	fmt.Println("  /mcp           MCP server info")
 	fmt.Println("  /team          List teammates")
 	fmt.Println("  /tasks         List background tasks")
+	fmt.Println("  /providers     List registered LLM providers")
 	fmt.Println("  /permissions   Show permission settings")
 	fmt.Println("  /login         OAuth login")
 	fmt.Println("  /logout        Clear saved credentials")

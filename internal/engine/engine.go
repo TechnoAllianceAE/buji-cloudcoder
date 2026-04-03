@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -19,7 +20,8 @@ import (
 
 // QueryEngine manages the conversation loop
 type QueryEngine struct {
-	client      *api.Client
+	client      *api.Client          // legacy single client (for compact, etc.)
+	providers   *api.ProviderRegistry // multi-provider registry
 	cfg         types.SessionConfig
 	registry    *tools.Registry
 	messages    []types.Message
@@ -55,8 +57,12 @@ func NewQueryEngine(apiKey string, cfg types.SessionConfig) *QueryEngine {
 
 	sessDir := filepath.Join(config.GetSessionsDir(), sessionID)
 
+	// Build provider registry from config
+	providerReg := buildProviderRegistry(apiKey, baseURL, appCfg)
+
 	e := &QueryEngine{
-		client:      api.NewClient(apiKey, baseURL),
+		client:      api.NewClient(apiKey, baseURL), // legacy fallback
+		providers:   providerReg,
 		cfg:         cfg,
 		registry:    tools.NewRegistry(),
 		messages:    nil,
@@ -70,7 +76,7 @@ func NewQueryEngine(apiKey string, cfg types.SessionConfig) *QueryEngine {
 		compact:     DefaultCompactConfig(),
 	}
 
-	// Wire up sub-agent spawning so the Agent tool can create real sub-engines
+	// Wire up sub-agent spawning
 	InitSubAgentExecutor(apiKey, cfg)
 
 	return e
@@ -291,8 +297,8 @@ func (e *QueryEngine) runLoop() error {
 			}
 		}
 
-		// Stream the response with retry
-		resp, err := e.client.CreateMessageStreamWithRetry(req, func(event types.StreamEvent) error {
+		// Stream via provider registry (supports provider/model notation)
+		streamCallback := func(event types.StreamEvent) error {
 			switch event.Type {
 			case "content_block_delta":
 				if event.Delta != nil {
@@ -305,7 +311,28 @@ func (e *QueryEngine) runLoop() error {
 				}
 			}
 			return nil
-		}, retryCfg)
+		}
+
+		var resp *types.APIResponse
+		var err error
+
+		if e.providers != nil && len(e.providers.ListProviders()) > 0 {
+			// Use provider registry — resolves "provider/model" notation
+			provReq := api.ProviderRequest{
+				Model:       e.cfg.Model,
+				Messages:    e.messages,
+				System:      e.buildSystemPrompt(),
+				Tools:       e.registry.GetToolDefinitions(),
+				MaxTokens:   e.cfg.MaxTokens,
+				Temperature: e.cfg.Temperature,
+				Stream:      true,
+			}
+			resp, err = e.providers.StreamToModel(
+				context.Background(), e.cfg.Model, provReq, streamCallback)
+		} else {
+			// Legacy fallback — direct Anthropic client
+			resp, err = e.client.CreateMessageStreamWithRetry(req, streamCallback, retryCfg)
+		}
 
 		if err != nil {
 			if e.OnError != nil {
@@ -568,7 +595,86 @@ func (e *QueryEngine) GetDiff() string {
 	return sb.String()
 }
 
-// itoa converts int to string (replacing the broken one in git.go)
+// itoa converts int to string
 func itoaFmt(n int) string {
 	return strconv.Itoa(n)
+}
+
+// buildProviderRegistry creates a provider registry from config
+func buildProviderRegistry(apiKey, baseURL string, appCfg *config.Config) *api.ProviderRegistry {
+	reg := api.NewProviderRegistry()
+
+	keys := appCfg.APIKeys
+
+	// Register Anthropic (always, even if key is empty — it's the default)
+	anthropicKey := keys.Anthropic
+	if anthropicKey == "" {
+		anthropicKey = apiKey
+	}
+	if anthropicKey != "" {
+		reg.Register(api.NewAnthropicProvider(anthropicKey, baseURL))
+		reg.SetFallback("anthropic")
+	}
+
+	// OpenAI
+	if keys.OpenAI != "" {
+		reg.Register(api.NewOpenAIProvider(keys.OpenAI))
+	}
+
+	// OpenRouter
+	if keys.OpenRouter != "" {
+		reg.Register(api.NewOpenRouterProvider(keys.OpenRouter))
+		if anthropicKey == "" {
+			reg.SetFallback("openrouter")
+		}
+	}
+
+	// Groq
+	if keys.Groq != "" {
+		reg.Register(api.NewGroqProvider(keys.Groq))
+	}
+
+	// Together
+	if keys.Together != "" {
+		reg.Register(api.NewTogetherProvider(keys.Together))
+	}
+
+	// Cerebras
+	if keys.Cerebras != "" {
+		reg.Register(api.NewCerebrasProvider(keys.Cerebras))
+	}
+
+	// xAI
+	if keys.XAI != "" {
+		reg.Register(api.NewXAIProvider(keys.XAI))
+	}
+
+	// Gemini
+	if keys.Gemini != "" {
+		reg.Register(api.NewGeminiProvider(keys.Gemini))
+	}
+
+	// DeepSeek
+	if keys.DeepSeek != "" {
+		reg.Register(api.NewDeepSeekProvider(keys.DeepSeek))
+	}
+
+	// Ollama (local, no key needed)
+	ollamaURL := keys.OllamaURL
+	if ollamaURL != "" {
+		reg.Register(api.NewOllamaProvider(ollamaURL))
+	}
+
+	// Llama.cpp (local, no key needed)
+	llamacppURL := keys.LlamaCppURL
+	if llamacppURL != "" {
+		reg.Register(api.NewLlamaCppProvider(llamacppURL))
+	}
+
+	return reg
+}
+
+// GetProviders returns the provider registry
+func (e *QueryEngine) GetProviders() *api.ProviderRegistry {
+	return e.providers
 }
