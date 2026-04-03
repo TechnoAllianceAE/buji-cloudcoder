@@ -46,10 +46,62 @@ type MessagesRequest struct {
 	Messages    []types.Message        `json:"messages"`
 	System      any                    `json:"system,omitempty"`      // string or []SystemBlock
 	Tools       []types.ToolDefinition `json:"tools,omitempty"`
+	ToolChoice  any                    `json:"tool_choice,omitempty"` // "auto", "any", or {"type":"tool","name":"..."}
 	Stream      bool                   `json:"stream"`
 	Temperature *float64               `json:"temperature,omitempty"`
 	Thinking    *ThinkingConfig        `json:"thinking,omitempty"`
 	Metadata    map[string]string      `json:"metadata,omitempty"`
+
+	// Structured output — forces model to return valid JSON matching the schema
+	// Uses a hidden tool "_structured_output" to enforce the schema via tool_use
+	structuredSchema map[string]any `json:"-"`
+}
+
+// SetStructuredOutput configures the request to enforce JSON output matching a schema.
+// This works by injecting a hidden tool whose input_schema is the desired output schema,
+// and setting tool_choice to force the model to call it.
+func (r *MessagesRequest) SetStructuredOutput(schema map[string]any) {
+	r.structuredSchema = schema
+
+	// Add the structured output enforcement tool
+	r.Tools = append(r.Tools, types.ToolDefinition{
+		Name:        "_structured_output",
+		Description: "Return a structured JSON response matching the required schema. You MUST call this tool with your response.",
+		InputSchema: schema,
+	})
+
+	// Force the model to use this tool
+	r.ToolChoice = map[string]any{
+		"type": "tool",
+		"name": "_structured_output",
+	}
+}
+
+// IsStructuredOutput returns whether this request uses structured output
+func (r *MessagesRequest) IsStructuredOutput() bool {
+	return r.structuredSchema != nil
+}
+
+// ExtractStructuredOutput pulls the JSON result from a structured output response
+func ExtractStructuredOutput(resp *types.APIResponse) (map[string]any, error) {
+	for _, block := range resp.Content {
+		if block.Type == "tool_use" && block.Name == "_structured_output" {
+			if m, ok := block.Input.(map[string]any); ok {
+				return m, nil
+			}
+			// Try JSON round-trip
+			data, err := json.Marshal(block.Input)
+			if err != nil {
+				return nil, fmt.Errorf("marshal structured output: %w", err)
+			}
+			var result map[string]any
+			if err := json.Unmarshal(data, &result); err != nil {
+				return nil, fmt.Errorf("unmarshal structured output: %w", err)
+			}
+			return result, nil
+		}
+	}
+	return nil, fmt.Errorf("no structured output found in response")
 }
 
 // ThinkingConfig for extended thinking

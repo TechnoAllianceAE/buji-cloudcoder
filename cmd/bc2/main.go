@@ -29,6 +29,7 @@ func main() {
 		thinkingBudget int
 		outputJSON     bool
 		systemPrompt   string
+		jsonSchema     string
 	)
 
 	flag.BoolVar(&showVersion, "version", false, "Show version")
@@ -41,6 +42,7 @@ func main() {
 	flag.IntVar(&thinkingBudget, "thinking-budget", 10000, "Thinking token budget")
 	flag.BoolVar(&outputJSON, "json", false, "Output final result as JSON (non-interactive)")
 	flag.StringVar(&systemPrompt, "system", "", "Custom system prompt")
+	flag.StringVar(&jsonSchema, "schema", "", "JSON schema for structured output (file path or inline JSON)")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "BujiCloudCoder (bc2) v%s — by TA\n\n", version)
@@ -97,6 +99,12 @@ func main() {
 	}
 	if systemPrompt != "" {
 		cfg.SystemPrompt = systemPrompt
+	}
+	if jsonSchema != "" {
+		schema := parseJSONSchema(jsonSchema)
+		if schema != nil {
+			cfg.JSONSchema = schema
+		}
 	}
 
 	// Check for remaining args as prompt
@@ -201,4 +209,26 @@ func runOneShot(apiKey string, cfg types.SessionConfig, prompt string, outputJSO
 	}
 
 	_ = eng.SaveSession()
+}
+
+// parseJSONSchema reads a JSON schema from a file path or inline JSON string
+func parseJSONSchema(input string) map[string]any {
+	var schema map[string]any
+
+	// Try as inline JSON first
+	if err := json.Unmarshal([]byte(input), &schema); err == nil {
+		return schema
+	}
+
+	// Try as file path
+	data, err := os.ReadFile(input)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not parse schema: %v\n", err)
+		return nil
+	}
+	if err := json.Unmarshal(data, &schema); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: invalid JSON in schema file: %v\n", err)
+		return nil
+	}
+	return schema
 }

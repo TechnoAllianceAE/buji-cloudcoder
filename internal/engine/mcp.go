@@ -2,35 +2,64 @@ package engine
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/TechnoAllianceAE/buji-cloudcoder/internal/config"
 	"github.com/TechnoAllianceAE/buji-cloudcoder/internal/types"
 )
 
+// TransportType identifies how we communicate with the MCP server
+type TransportType string
+
+const (
+	TransportStdio TransportType = "stdio"
+	TransportHTTP  TransportType = "http"
+	TransportSSE   TransportType = "sse"
+)
+
 // MCPServerConfig defines an MCP server from settings
 type MCPServerConfig struct {
-	Command string            `json:"command"`
-	Args    []string          `json:"args"`
-	Env     map[string]string `json:"env,omitempty"`
-	Enabled *bool             `json:"enabled,omitempty"`
+	Command   string            `json:"command"`          // For stdio transport
+	Args      []string          `json:"args"`             // For stdio transport
+	Env       map[string]string `json:"env,omitempty"`
+	Enabled   *bool             `json:"enabled,omitempty"`
+	URL       string            `json:"url,omitempty"`    // For HTTP/SSE transport
+	Transport string            `json:"transport,omitempty"` // "stdio", "http", "sse" (default: auto-detect)
+	Headers   map[string]string `json:"headers,omitempty"`   // Custom headers for HTTP
+	APIKey    string            `json:"apiKey,omitempty"`    // Bearer token for HTTP auth
 }
 
-// MCPClient manages a connection to an MCP server via stdio
+// mcpTransport is the interface for MCP communication
+type mcpTransport interface {
+	send(method string, params any) (json.RawMessage, error)
+	close()
+}
+
+// MCPClient manages a connection to an MCP server
 type MCPClient struct {
-	name    string
-	cmd     *exec.Cmd
-	stdin   io.WriteCloser
-	stdout  *bufio.Reader
-	mu      sync.Mutex
-	nextID  int
-	tools   []types.ToolDefinition
+	name      string
+	transport mcpTransport
+	mu        sync.Mutex
+	tools     []types.ToolDefinition
+	resources []MCPResource
+}
+
+// MCPResource represents a discovered MCP resource
+type MCPResource struct {
+	URI         string `json:"uri"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	MimeType    string `json:"mimeType,omitempty"`
 }
 
 // MCPManager manages all MCP server connections
@@ -73,53 +102,42 @@ func (mgr *MCPManager) loadFromFile(path string) {
 		if cfg.Enabled != nil && !*cfg.Enabled {
 			continue
 		}
-		if cfg.Command == "" {
-			continue
-		}
 		_ = mgr.Connect(name, cfg)
 	}
 }
 
-// Connect starts an MCP server process
+// Connect starts an MCP server connection using the appropriate transport
 func (mgr *MCPManager) Connect(name string, cfg MCPServerConfig) error {
-	cmd := exec.Command(cfg.Command, cfg.Args...)
+	transport := detectTransport(cfg)
 
-	// Set environment
-	cmd.Env = os.Environ()
-	for k, v := range cfg.Env {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	var t mcpTransport
+	var err error
+
+	switch transport {
+	case TransportHTTP, TransportSSE:
+		t, err = newHTTPTransport(cfg)
+	case TransportStdio:
+		t, err = newStdioTransport(cfg)
+	default:
+		return fmt.Errorf("unknown transport: %s", transport)
 	}
 
-	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return fmt.Errorf("stdin pipe: %w", err)
-	}
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("stdout pipe: %w", err)
-	}
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("start MCP server %s: %w", name, err)
+		return fmt.Errorf("connect MCP %s (%s): %w", name, transport, err)
 	}
 
 	client := &MCPClient{
-		name:   name,
-		cmd:    cmd,
-		stdin:  stdin,
-		stdout: bufio.NewReader(stdout),
+		name:      name,
+		transport: t,
 	}
 
-	mgr.clients[name] = client
-
-	// Initialize the MCP connection
+	// Initialize MCP protocol
 	if err := client.initialize(); err != nil {
-		_ = cmd.Process.Kill()
-		delete(mgr.clients, name)
+		t.close()
 		return fmt.Errorf("initialize MCP %s: %w", name, err)
 	}
 
+	mgr.clients[name] = client
 	return nil
 }
 
@@ -141,98 +159,56 @@ func (mgr *MCPManager) CallTool(serverName, toolName string, input map[string]an
 	return client.callTool(toolName, input)
 }
 
+// ListResources returns resources from a server
+func (mgr *MCPManager) ListResources(serverName string) ([]MCPResource, error) {
+	client, ok := mgr.clients[serverName]
+	if !ok {
+		return nil, fmt.Errorf("MCP server not found: %s", serverName)
+	}
+	return client.resources, nil
+}
+
+// ReadResource reads a resource by URI
+func (mgr *MCPManager) ReadResource(serverName, uri string) (string, error) {
+	client, ok := mgr.clients[serverName]
+	if !ok {
+		return "", fmt.Errorf("MCP server not found: %s", serverName)
+	}
+	return client.readResource(uri)
+}
+
 // Close shuts down all MCP servers
 func (mgr *MCPManager) Close() {
 	for _, client := range mgr.clients {
-		client.close()
+		client.transport.close()
 	}
 }
 
-// --- MCPClient methods ---
-
-type jsonrpcRequest struct {
-	JSONRPC string `json:"jsonrpc"`
-	ID      int    `json:"id"`
-	Method  string `json:"method"`
-	Params  any    `json:"params,omitempty"`
-}
-
-type jsonrpcResponse struct {
-	JSONRPC string          `json:"jsonrpc"`
-	ID      int             `json:"id"`
-	Result  json.RawMessage `json:"result,omitempty"`
-	Error   *jsonrpcError   `json:"error,omitempty"`
-}
-
-type jsonrpcError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
-func (c *MCPClient) send(method string, params any) (json.RawMessage, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.nextID++
-	req := jsonrpcRequest{
-		JSONRPC: "2.0",
-		ID:      c.nextID,
-		Method:  method,
-		Params:  params,
-	}
-
-	data, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-	data = append(data, '\n')
-
-	if _, err := c.stdin.Write(data); err != nil {
-		return nil, fmt.Errorf("write to MCP: %w", err)
-	}
-
-	// Read response
-	line, err := c.stdout.ReadBytes('\n')
-	if err != nil {
-		return nil, fmt.Errorf("read from MCP: %w", err)
-	}
-
-	var resp jsonrpcResponse
-	if err := json.Unmarshal(line, &resp); err != nil {
-		return nil, fmt.Errorf("parse MCP response: %w", err)
-	}
-
-	if resp.Error != nil {
-		return nil, fmt.Errorf("MCP error (%d): %s", resp.Error.Code, resp.Error.Message)
-	}
-
-	return resp.Result, nil
-}
+// --- MCPClient protocol methods ---
 
 func (c *MCPClient) initialize() error {
-	// Send initialize request
-	_, err := c.send("initialize", map[string]any{
+	_, err := c.transport.send("initialize", map[string]any{
 		"protocolVersion": "2024-11-05",
 		"capabilities":    map[string]any{},
-		"clientInfo": map[string]any{
-			"name":    "bc2",
-			"version": "1.0.0",
-		},
+		"clientInfo":      map[string]any{"name": "bc2", "version": "1.0.0"},
 	})
 	if err != nil {
 		return err
 	}
 
-	// Send initialized notification (no response expected)
-	notif, _ := json.Marshal(jsonrpcRequest{
-		JSONRPC: "2.0",
-		Method:  "notifications/initialized",
-	})
-	notif = append(notif, '\n')
-	_, _ = c.stdin.Write(notif)
+	// Discover tools
+	if err := c.discoverTools(); err != nil {
+		return err
+	}
 
-	// List tools
-	result, err := c.send("tools/list", nil)
+	// Discover resources (optional, don't fail if unsupported)
+	_ = c.discoverResources()
+
+	return nil
+}
+
+func (c *MCPClient) discoverTools() error {
+	result, err := c.transport.send("tools/list", nil)
 	if err != nil {
 		return err
 	}
@@ -255,12 +231,27 @@ func (c *MCPClient) initialize() error {
 			InputSchema: t.InputSchema,
 		})
 	}
+	return nil
+}
 
+func (c *MCPClient) discoverResources() error {
+	result, err := c.transport.send("resources/list", nil)
+	if err != nil {
+		return err // Not all servers support resources
+	}
+
+	var resourceList struct {
+		Resources []MCPResource `json:"resources"`
+	}
+	if err := json.Unmarshal(result, &resourceList); err != nil {
+		return err
+	}
+	c.resources = resourceList.Resources
 	return nil
 }
 
 func (c *MCPClient) callTool(toolName string, input map[string]any) (string, error) {
-	result, err := c.send("tools/call", map[string]any{
+	result, err := c.transport.send("tools/call", map[string]any{
 		"name":      toolName,
 		"arguments": input,
 	})
@@ -284,12 +275,312 @@ func (c *MCPClient) callTool(toolName string, input map[string]any) (string, err
 			parts = append(parts, c.Text)
 		}
 	}
-	return fmt.Sprintf("%s", parts), nil
+	return strings.Join(parts, "\n"), nil
 }
 
-func (c *MCPClient) close() {
-	_ = c.stdin.Close()
-	if c.cmd.Process != nil {
-		_ = c.cmd.Process.Kill()
+func (c *MCPClient) readResource(uri string) (string, error) {
+	result, err := c.transport.send("resources/read", map[string]any{
+		"uri": uri,
+	})
+	if err != nil {
+		return "", err
 	}
+
+	var readResult struct {
+		Contents []struct {
+			URI      string `json:"uri"`
+			MimeType string `json:"mimeType"`
+			Text     string `json:"text"`
+		} `json:"contents"`
+	}
+	if err := json.Unmarshal(result, &readResult); err != nil {
+		return string(result), nil
+	}
+
+	var parts []string
+	for _, c := range readResult.Contents {
+		parts = append(parts, c.Text)
+	}
+	return strings.Join(parts, "\n"), nil
+}
+
+// --- Transport: stdio ---
+
+type stdioTransport struct {
+	cmd    *exec.Cmd
+	stdin  io.WriteCloser
+	stdout *bufio.Reader
+	nextID int
+}
+
+func newStdioTransport(cfg MCPServerConfig) (*stdioTransport, error) {
+	if cfg.Command == "" {
+		return nil, fmt.Errorf("stdio transport requires 'command'")
+	}
+
+	cmd := exec.Command(cfg.Command, cfg.Args...)
+	cmd.Env = os.Environ()
+	for k, v := range cfg.Env {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("start process: %w", err)
+	}
+
+	return &stdioTransport{
+		cmd:    cmd,
+		stdin:  stdin,
+		stdout: bufio.NewReaderSize(stdout, 1024*1024),
+	}, nil
+}
+
+func (t *stdioTransport) send(method string, params any) (json.RawMessage, error) {
+	t.nextID++
+	req := jsonrpcRequest{
+		JSONRPC: "2.0",
+		ID:      t.nextID,
+		Method:  method,
+		Params:  params,
+	}
+
+	data, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	data = append(data, '\n')
+
+	if _, err := t.stdin.Write(data); err != nil {
+		return nil, fmt.Errorf("write: %w", err)
+	}
+
+	line, err := t.stdout.ReadBytes('\n')
+	if err != nil {
+		return nil, fmt.Errorf("read: %w", err)
+	}
+
+	var resp jsonrpcResponse
+	if err := json.Unmarshal(line, &resp); err != nil {
+		return nil, fmt.Errorf("parse response: %w", err)
+	}
+	if resp.Error != nil {
+		return nil, fmt.Errorf("MCP error (%d): %s", resp.Error.Code, resp.Error.Message)
+	}
+	return resp.Result, nil
+}
+
+func (t *stdioTransport) close() {
+	_ = t.stdin.Close()
+	if t.cmd.Process != nil {
+		_ = t.cmd.Process.Kill()
+	}
+}
+
+// --- Transport: HTTP (Streamable HTTP / SSE) ---
+
+type httpTransport struct {
+	baseURL    string
+	headers    map[string]string
+	httpClient *http.Client
+	sessionID  string // MCP session ID from server
+	nextID     int
+	mu         sync.Mutex
+}
+
+func newHTTPTransport(cfg MCPServerConfig) (*httpTransport, error) {
+	if cfg.URL == "" {
+		return nil, fmt.Errorf("HTTP transport requires 'url'")
+	}
+
+	headers := make(map[string]string)
+	for k, v := range cfg.Headers {
+		headers[k] = v
+	}
+	if cfg.APIKey != "" {
+		headers["Authorization"] = "Bearer " + cfg.APIKey
+	}
+
+	return &httpTransport{
+		baseURL: strings.TrimRight(cfg.URL, "/"),
+		headers: headers,
+		httpClient: &http.Client{
+			Timeout: 60 * time.Second,
+		},
+	}, nil
+}
+
+func (t *httpTransport) send(method string, params any) (json.RawMessage, error) {
+	t.mu.Lock()
+	t.nextID++
+	id := t.nextID
+	t.mu.Unlock()
+
+	req := jsonrpcRequest{
+		JSONRPC: "2.0",
+		ID:      id,
+		Method:  method,
+		Params:  params,
+	}
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// POST to the MCP endpoint
+	endpoint := t.baseURL
+	if !strings.HasSuffix(endpoint, "/mcp") && !strings.HasSuffix(endpoint, "/rpc") {
+		endpoint += "/mcp"
+	}
+
+	httpReq, err := http.NewRequest("POST", endpoint, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "application/json, text/event-stream")
+	for k, v := range t.headers {
+		httpReq.Header.Set(k, v)
+	}
+	if t.sessionID != "" {
+		httpReq.Header.Set("Mcp-Session-Id", t.sessionID)
+	}
+
+	resp, err := t.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Capture session ID if returned
+	if sid := resp.Header.Get("Mcp-Session-Id"); sid != "" {
+		t.mu.Lock()
+		t.sessionID = sid
+		t.mu.Unlock()
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+
+	// Handle SSE response (text/event-stream)
+	if strings.Contains(contentType, "text/event-stream") {
+		return t.parseSSEResponse(resp.Body, id)
+	}
+
+	// Handle direct JSON response
+	if resp.StatusCode != 200 {
+		errBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(errBody))
+	}
+
+	var jsonResp jsonrpcResponse
+	if err := json.NewDecoder(resp.Body).Decode(&jsonResp); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
+	}
+	if jsonResp.Error != nil {
+		return nil, fmt.Errorf("MCP error (%d): %s", jsonResp.Error.Code, jsonResp.Error.Message)
+	}
+	return jsonResp.Result, nil
+}
+
+// parseSSEResponse reads an SSE stream and extracts the JSON-RPC response
+func (t *httpTransport) parseSSEResponse(reader io.Reader, expectedID int) (json.RawMessage, error) {
+	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+
+		data := strings.TrimPrefix(line, "data: ")
+		if data == "" {
+			continue
+		}
+
+		var resp jsonrpcResponse
+		if err := json.Unmarshal([]byte(data), &resp); err != nil {
+			continue // Skip malformed events
+		}
+
+		// Match by ID — this is our response
+		if resp.ID == expectedID {
+			if resp.Error != nil {
+				return nil, fmt.Errorf("MCP error (%d): %s", resp.Error.Code, resp.Error.Message)
+			}
+			return resp.Result, nil
+		}
+	}
+
+	return nil, fmt.Errorf("SSE stream ended without response for request %d", expectedID)
+}
+
+func (t *httpTransport) close() {
+	// Send DELETE to clean up session (best effort)
+	if t.sessionID != "" {
+		req, err := http.NewRequest("DELETE", t.baseURL, nil)
+		if err == nil {
+			req.Header.Set("Mcp-Session-Id", t.sessionID)
+			for k, v := range t.headers {
+				req.Header.Set(k, v)
+			}
+			client := &http.Client{Timeout: 5 * time.Second}
+			resp, err := client.Do(req)
+			if err == nil {
+				resp.Body.Close()
+			}
+		}
+	}
+}
+
+// --- Shared JSON-RPC types ---
+
+type jsonrpcRequest struct {
+	JSONRPC string `json:"jsonrpc"`
+	ID      int    `json:"id"`
+	Method  string `json:"method"`
+	Params  any    `json:"params,omitempty"`
+}
+
+type jsonrpcResponse struct {
+	JSONRPC string          `json:"jsonrpc"`
+	ID      int             `json:"id"`
+	Result  json.RawMessage `json:"result,omitempty"`
+	Error   *jsonrpcError   `json:"error,omitempty"`
+}
+
+type jsonrpcError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+// --- Helpers ---
+
+func detectTransport(cfg MCPServerConfig) TransportType {
+	if cfg.Transport != "" {
+		switch cfg.Transport {
+		case "http":
+			return TransportHTTP
+		case "sse":
+			return TransportSSE
+		case "stdio":
+			return TransportStdio
+		}
+	}
+	// Auto-detect: URL present = HTTP, command present = stdio
+	if cfg.URL != "" {
+		return TransportHTTP
+	}
+	return TransportStdio
 }

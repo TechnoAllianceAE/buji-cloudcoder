@@ -55,7 +55,7 @@ func NewQueryEngine(apiKey string, cfg types.SessionConfig) *QueryEngine {
 
 	sessDir := filepath.Join(config.GetSessionsDir(), sessionID)
 
-	return &QueryEngine{
+	e := &QueryEngine{
 		client:      api.NewClient(apiKey, baseURL),
 		cfg:         cfg,
 		registry:    tools.NewRegistry(),
@@ -69,6 +69,11 @@ func NewQueryEngine(apiKey string, cfg types.SessionConfig) *QueryEngine {
 		gitInfo:     DetectGit(cwd),
 		compact:     DefaultCompactConfig(),
 	}
+
+	// Wire up sub-agent spawning so the Agent tool can create real sub-engines
+	InitSubAgentExecutor(apiKey, cfg)
+
+	return e
 }
 
 // GetSessionID returns the session ID
@@ -268,6 +273,11 @@ func (e *QueryEngine) runLoop() error {
 
 		if e.cfg.Temperature != nil {
 			req.Temperature = e.cfg.Temperature
+		}
+
+		// Structured output enforcement
+		if e.cfg.JSONSchema != nil {
+			req.SetStructuredOutput(e.cfg.JSONSchema)
 		}
 
 		if e.cfg.EnableThinking {

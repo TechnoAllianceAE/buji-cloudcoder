@@ -113,6 +113,8 @@ type SessionConfig struct {
 	ThinkingBudget     int
 	MaxTurns           int
 	PermissionMode     string
+	// Structured output
+	JSONSchema         map[string]any // If set, enforce structured JSON output
 }
 
 // DefaultSessionConfig returns sensible defaults
