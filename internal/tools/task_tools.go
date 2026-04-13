@@ -37,13 +37,26 @@ type TaskManager struct {
 	nextID int
 }
 
-// Global task manager (shared across tools)
-var globalTaskManager = &TaskManager{
-	tasks: make(map[string]*Task),
+// NewTaskManager creates a new session-scoped task manager
+func NewTaskManager() *TaskManager {
+	return &TaskManager{
+		tasks: make(map[string]*Task),
+	}
 }
 
-// GetTaskManager returns the global task manager
+// globalTaskManager is the legacy fallback; prefer ToolContext.TaskManager
+var globalTaskManager = NewTaskManager()
+
+// GetTaskManager returns the global task manager (deprecated: use ToolContext.TaskManager)
 func GetTaskManager() *TaskManager { return globalTaskManager }
+
+// getTaskMgr returns the session-scoped manager from ctx, falling back to global
+func getTaskMgr(ctx *ToolContext) *TaskManager {
+	if ctx != nil && ctx.TaskManager != nil {
+		return ctx.TaskManager
+	}
+	return globalTaskManager
+}
 
 func (tm *TaskManager) Create(title, description, status string) *Task {
 	tm.mu.Lock()
@@ -132,7 +145,7 @@ func (t *TaskCreateTool) Execute(input map[string]any, ctx *ToolContext) types.T
 	if title == "" {
 		return types.ToolResult{Content: "Error: title is required", IsError: true}
 	}
-	task := globalTaskManager.Create(title, desc, status)
+	task := getTaskMgr(ctx).Create(title, desc, status)
 	return types.ToolResult{Content: fmt.Sprintf("Created task %s: %s [%s]", task.ID, task.Title, task.Status)}
 }
 
@@ -157,7 +170,7 @@ func (t *TaskGetTool) InputSchema() map[string]any {
 func (t *TaskGetTool) IsReadOnly(_ map[string]any) bool { return true }
 func (t *TaskGetTool) Execute(input map[string]any, ctx *ToolContext) types.ToolResult {
 	id, _ := input["task_id"].(string)
-	task := globalTaskManager.Get(id)
+	task := getTaskMgr(ctx).Get(id)
 	if task == nil {
 		return types.ToolResult{Content: fmt.Sprintf("Task not found: %s", id), IsError: true}
 	}
@@ -193,7 +206,7 @@ func (t *TaskUpdateTool) IsReadOnly(_ map[string]any) bool { return false }
 func (t *TaskUpdateTool) Execute(input map[string]any, ctx *ToolContext) types.ToolResult {
 	id, _ := input["task_id"].(string)
 	status, _ := input["status"].(string)
-	if err := globalTaskManager.Update(id, status); err != nil {
+	if err := getTaskMgr(ctx).Update(id, status); err != nil {
 		return types.ToolResult{Content: err.Error(), IsError: true}
 	}
 	return types.ToolResult{Content: fmt.Sprintf("Task %s updated to: %s", id, status)}
@@ -213,7 +226,7 @@ func (t *TaskListTool) InputSchema() map[string]any {
 }
 func (t *TaskListTool) IsReadOnly(_ map[string]any) bool { return true }
 func (t *TaskListTool) Execute(input map[string]any, ctx *ToolContext) types.ToolResult {
-	tasks := globalTaskManager.List()
+	tasks := getTaskMgr(ctx).List()
 	if len(tasks) == 0 {
 		return types.ToolResult{Content: "No tasks created yet."}
 	}
@@ -256,7 +269,7 @@ func (t *TaskStopTool) InputSchema() map[string]any {
 func (t *TaskStopTool) IsReadOnly(_ map[string]any) bool { return false }
 func (t *TaskStopTool) Execute(input map[string]any, ctx *ToolContext) types.ToolResult {
 	id, _ := input["task_id"].(string)
-	if err := globalTaskManager.Stop(id); err != nil {
+	if err := getTaskMgr(ctx).Stop(id); err != nil {
 		return types.ToolResult{Content: err.Error(), IsError: true}
 	}
 	return types.ToolResult{Content: fmt.Sprintf("Task %s stopped.", id)}

@@ -157,42 +157,18 @@ Code hardening, correctness, and production readiness.
 
 | # | Feature | Status | Description |
 |---|---------|--------|-------------|
-| 8.1 | Session-scoped managers | 🔧 | Replace global singletons (`globalTaskManager`, `globalTeamManager`, `bgTaskManager`) with fields on `QueryEngine`. Eliminates cross-session contamination and enables multi-session usage. |
-| 8.2 | Background task cleanup | 🔧 | Add `PruneCompleted()` and `WaitAll()` to `BackgroundTaskManager`. Completed tasks currently accumulate forever in the `tasks` map (memory leak). |
-| 8.3 | Config reload support | 🔧 | Replace `sync.Once` in `config.go:38-40` with explicit `Reload()` or file-watching (fsnotify). Current config is stale after first load regardless of CWD changes. |
-| 8.4 | Test framework + permission tests | 🔧 | Add `go test ./...` with table-driven tests for `internal/engine/permissions.go` (219 lines of security-critical logic with zero tests). |
-| 8.5 | Retry/jitter tests | 🔧 | Add tests for `internal/api/retry.go:91-100`. Current jitter calculation `delay * 0.25 * (rand.Float64()*2 - 1)` can produce negative delays when `rand.Float64()` returns 0.0. |
-| 8.6 | Compact logic tests | 🔧 | Add tests for `internal/engine/compact.go` — verify it preserves recent messages and produces valid output. |
-| 8.7 | File edit multi-match tests | 🔧 | Add tests for `internal/tools/file_edit.go:84-95` — multi-match detection edge cases. |
-| 8.8 | MCP response dispatcher | 🔧 | Replace blocking `ReadBytes('\n')` in `mcp.go:172-210` with a response dispatcher pattern (`map[int]chan json.RawMessage` + dedicated stdout reader goroutine). Prevents response corruption under concurrent MCP tool calls. |
-| 8.9 | MCP notification handling | 🔧 | Separate server-initiated notifications (no ID) from request-response path. Currently `initialize()` sends without reading response, corrupting the next `send()` call. |
-| 8.10 | Bridge server authentication | 🔧 | Add shared secret token required in `X-BC2-Token` header. Currently any process on the machine can POST to `/prompt` and execute arbitrary commands. |
-| 8.11 | Bridge server race fix | 🔧 | Use per-request response channels instead of swapping global `OnStreamText` callback (`bridge.go:67-75`). Concurrent `/prompt` requests currently interleave responses into a single `strings.Builder`. |
-| 8.12 | Bridge graceful shutdown | 🔧 | Replace `listener.Close()` with `http.Server.Shutdown(ctx)`. Active connections are not drained on stop. |
-| 8.13 | OAuth token refresh | 🔧 | Implement `RefreshTokens()` in `oauth.go`. Currently no refresh method exists — access tokens expire after ~1 hour requiring manual re-auth. |
-| 8.14 | OAuth token integration | 🔧 | Wire `LoadTokens()` into `getAPIKey()` at `main.go:138`. OAuth tokens are stored but never used for API calls — the login flow is dead code. |
-| 8.15 | OAuth auto-refresh middleware | 🔧 | Add middleware in `api/client.go` that auto-refreshes on 401 responses before retrying the request. |
-
----
-
-## Phase 8 — Quality & Reliability
-
-Code hardening, correctness, and production readiness.
-
-| # | Feature | Status | Description |
-|---|---------|--------|-------------|
-| 8.1 | Session-scoped managers | 🔧 | Replace global singletons (`globalTaskManager`, `globalTeamManager`, `bgTaskManager`) with fields on `QueryEngine`. Eliminates cross-session contamination and enables multi-session usage. |
-| 8.2 | Background task cleanup | 🔧 | Add `PruneCompleted()` and `WaitAll()` to `BackgroundTaskManager`. Completed tasks currently accumulate forever in the `tasks` map (memory leak). |
-| 8.3 | Config reload support | 🔧 | Replace `sync.Once` in `config.go:38-40` with explicit `Reload()` or file-watching (fsnotify). Current config is stale after first load regardless of CWD changes. |
-| 8.4 | Test framework + permission tests | 🔧 | Add `go test ./...` with table-driven tests for `internal/engine/permissions.go` (219 lines of security-critical logic with zero tests). |
-| 8.5 | Retry/jitter tests | 🔧 | Add tests for `internal/api/retry.go:91-100`. Current jitter calculation `delay * 0.25 * (rand.Float64()*2 - 1)` can produce negative delays when `rand.Float64()` returns 0.0. |
-| 8.6 | Compact logic tests | 🔧 | Add tests for `internal/engine/compact.go` — verify it preserves recent messages and produces valid output. |
-| 8.7 | File edit multi-match tests | 🔧 | Add tests for `internal/tools/file_edit.go:84-95` — multi-match detection edge cases. |
-| 8.8 | MCP response dispatcher | 🔧 | Replace blocking `ReadBytes('\n')` in `mcp.go:172-210` with a response dispatcher pattern (`map[int]chan json.RawMessage` + dedicated stdout reader goroutine). Prevents response corruption under concurrent MCP tool calls. |
-| 8.9 | MCP notification handling | 🔧 | Separate server-initiated notifications (no ID) from request-response path. Currently `initialize()` sends without reading response, corrupting the next `send()` call. |
-| 8.10 | Bridge server authentication | 🔧 | Add shared secret token required in `X-BC2-Token` header. Currently any process on the machine can POST to `/prompt` and execute arbitrary commands. |
-| 8.11 | Bridge server race fix | 🔧 | Use per-request response channels instead of swapping global `OnStreamText` callback (`bridge.go:67-75`). Concurrent `/prompt` requests currently interleave responses into a single `strings.Builder`. |
-| 8.12 | Bridge graceful shutdown | 🔧 | Replace `listener.Close()` with `http.Server.Shutdown(ctx)`. Active connections are not drained on stop. |
+| 8.1 | Session-scoped managers | ✅ | Replaced global singletons (`globalTaskManager`, `globalTeamManager`, `bgTaskManager`) with session-scoped fields on `ToolContext`/`QueryEngine`. Globals kept as deprecated fallbacks. |
+| 8.2 | Background task cleanup | ✅ | `PruneCompleted()` and `WaitAll()` added to `BackgroundTaskManager`. |
+| 8.3 | Config reload support | ✅ | Replaced `sync.Once` with `sync.RWMutex` + explicit `Reload()` function in `config.go`. |
+| 8.4 | Test framework + permission tests | ✅ | Table-driven tests for permission modes, dangerous commands, dangerous paths, deny/allow rules in `permissions_test.go`. |
+| 8.5 | Retry/jitter tests | ✅ | Tests for `calculateDelay` — exponential backoff, max delay cap, 100ms floor, Retry-After header, always-positive guarantee. Jitter bug fixed (100ms clamp). |
+| 8.6 | Compact logic tests | ✅ | Tests for `ShouldCompact`, `MicroCompact` (truncation, preservation, non-mutation), `buildCompactPrompt` in `compact_test.go`. |
+| 8.7 | File edit multi-match tests | ✅ | Tests for multi-match rejection, `replace_all`, not-found, identical strings, missing params, multiline, indentation preservation in `file_edit_test.go`. |
+| 8.8 | MCP response dispatcher | ✅ | `pending map[int]chan jsonrpcResponse` + dedicated `readLoop` goroutine in `stdioTransport`. |
+| 8.9 | MCP notification handling | ✅ | `readLoop` discards server-initiated notifications (ID=0) separately from request-response path. |
+| 8.10 | Bridge server authentication | ✅ | Random 32-byte token generated at startup, `X-BC2-Token` header required via auth middleware on all mutating endpoints. |
+| 8.11 | Bridge server race fix | ✅ | Removed global `OnStreamText` callback swapping. `/prompt` handler extracts result from last assistant message instead. |
+| 8.12 | Bridge graceful shutdown | ✅ | `Stop()` uses `http.Server.Shutdown(ctx)` with 5s timeout to drain active connections. |
 | 8.13 | OAuth token refresh | 🔧 | Implement `RefreshTokens()` in `oauth.go`. Currently no refresh method exists — access tokens expire after ~1 hour requiring manual re-auth. |
 | 8.14 | OAuth token integration | 🔧 | Wire `LoadTokens()` into `getAPIKey()` at `main.go:138`. OAuth tokens are stored but never used for API calls — the login flow is dead code. |
 | 8.15 | OAuth auto-refresh middleware | 🔧 | Add middleware in `api/client.go` that auto-refreshes on 401 responses before retrying the request. |
@@ -208,8 +184,8 @@ Code hardening, correctness, and production readiness.
 ## Stats
 
 - **Total items:** 121
-- **Done:** 106
-- **Remaining:** 15
-- **Go files:** 56
-- **Lines of code:** ~9,300
+- **Done:** 118
+- **Remaining:** 3
+- **Go files:** 59
+- **Lines of code:** ~10,100
 - **Binary size:** 11MB

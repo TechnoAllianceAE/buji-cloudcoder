@@ -21,6 +21,10 @@ type ToolContext struct {
 	PermissionMode string
 	// CanUseTool callback - returns (allowed bool, reason string)
 	CanUseTool func(toolName string, input map[string]any) (bool, string)
+
+	// Session-scoped managers (set by QueryEngine, avoids global singletons)
+	TaskManager *TaskManager
+	TeamManager *TeamManager
 }
 
 // Registry holds all registered tools

@@ -353,7 +353,7 @@ func (r *REPL) handleCommand(input string) bool {
 		return true
 
 	case "/team":
-		fmt.Println(tools.ListTeammates())
+		fmt.Println(tools.ListTeammates(nil))
 		return true
 
 	case "/tasks":

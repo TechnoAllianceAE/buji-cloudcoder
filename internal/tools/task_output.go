@@ -26,7 +26,7 @@ func (t *TaskOutputTool) InputSchema() map[string]any {
 func (t *TaskOutputTool) IsReadOnly(_ map[string]any) bool { return true }
 func (t *TaskOutputTool) Execute(input map[string]any, ctx *ToolContext) types.ToolResult {
 	id, _ := input["task_id"].(string)
-	task := globalTaskManager.Get(id)
+	task := getTaskMgr(ctx).Get(id)
 	if task == nil {
 		return types.ToolResult{Content: fmt.Sprintf("Task not found: %s", id), IsError: true}
 	}

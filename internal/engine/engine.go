@@ -35,6 +35,11 @@ type QueryEngine struct {
 	gitInfo     GitInfo
 	compact     CompactConfig
 
+	// Session-scoped managers (replaces global singletons)
+	taskManager *tools.TaskManager
+	teamManager *tools.TeamManager
+	bgTaskMgr   *BackgroundTaskManager
+
 	// Callbacks
 	OnStreamText   func(text string)
 	OnStreamThink  func(text string)
@@ -74,6 +79,9 @@ func NewQueryEngine(apiKey string, cfg types.SessionConfig) *QueryEngine {
 		fileHistory: NewFileHistory(sessDir),
 		gitInfo:     DetectGit(cwd),
 		compact:     DefaultCompactConfig(),
+		taskManager: tools.NewTaskManager(),
+		teamManager: tools.NewTeamManager(),
+		bgTaskMgr:   NewBackgroundTaskManager(),
 	}
 
 	// Wire up sub-agent spawning
@@ -111,6 +119,9 @@ func (e *QueryEngine) SetMessages(msgs []types.Message) { e.messages = msgs }
 
 // GetSessionStore returns the session store
 func (e *QueryEngine) GetSessionStore() *SessionStore { return e.sessions }
+
+// GetBackgroundTaskMgr returns the session-scoped background task manager
+func (e *QueryEngine) GetBackgroundTaskMgr() *BackgroundTaskManager { return e.bgTaskMgr }
 
 // buildSystemPrompt constructs the system prompt
 func (e *QueryEngine) buildSystemPrompt() string {
@@ -223,6 +234,8 @@ func (e *QueryEngine) runLoop() error {
 	toolCtx := &tools.ToolContext{
 		CWD:            e.cwd,
 		PermissionMode: e.cfg.PermissionMode,
+		TaskManager:    e.taskManager,
+		TeamManager:    e.teamManager,
 		CanUseTool: func(toolName string, input map[string]any) (bool, string) {
 			tool, ok := e.registry.Get(toolName)
 			if !ok {

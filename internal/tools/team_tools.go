@@ -26,8 +26,22 @@ type TeamManager struct {
 	nextID    int
 }
 
-var globalTeamManager = &TeamManager{
-	teammates: make(map[string]*Teammate),
+// NewTeamManager creates a new session-scoped team manager
+func NewTeamManager() *TeamManager {
+	return &TeamManager{
+		teammates: make(map[string]*Teammate),
+	}
+}
+
+// globalTeamManager is the legacy fallback; prefer ToolContext.TeamManager
+var globalTeamManager = NewTeamManager()
+
+// getTeamMgr returns the session-scoped manager from ctx, falling back to global
+func getTeamMgr(ctx *ToolContext) *TeamManager {
+	if ctx != nil && ctx.TeamManager != nil {
+		return ctx.TeamManager
+	}
+	return globalTeamManager
 }
 
 // --- SendMessage Tool ---
@@ -63,15 +77,16 @@ func (t *SendMessageTool) Execute(input map[string]any, ctx *ToolContext) types.
 		return types.ToolResult{Content: "Error: 'to' and 'message' are required", IsError: true}
 	}
 
-	globalTeamManager.mu.RLock()
+	mgr := getTeamMgr(ctx)
+	mgr.mu.RLock()
 	var target *Teammate
-	for _, tm := range globalTeamManager.teammates {
+	for _, tm := range mgr.teammates {
 		if tm.Name == to || tm.ID == to {
 			target = tm
 			break
 		}
 	}
-	globalTeamManager.mu.RUnlock()
+	mgr.mu.RUnlock()
 
 	if target == nil {
 		return types.ToolResult{Content: fmt.Sprintf("Agent '%s' not found. Use TeamCreate to create teammates first.", to), IsError: true}
@@ -131,9 +146,10 @@ func (t *TeamCreateTool) Execute(input map[string]any, ctx *ToolContext) types.T
 		model = "sonnet"
 	}
 
-	globalTeamManager.mu.Lock()
-	globalTeamManager.nextID++
-	id := fmt.Sprintf("team_%d", globalTeamManager.nextID)
+	mgr := getTeamMgr(ctx)
+	mgr.mu.Lock()
+	mgr.nextID++
+	id := fmt.Sprintf("team_%d", mgr.nextID)
 	tm := &Teammate{
 		ID:          id,
 		Name:        name,
@@ -142,8 +158,8 @@ func (t *TeamCreateTool) Execute(input map[string]any, ctx *ToolContext) types.T
 		TokenBudget: budget,
 		Status:      "active",
 	}
-	globalTeamManager.teammates[id] = tm
-	globalTeamManager.mu.Unlock()
+	mgr.teammates[id] = tm
+	mgr.mu.Unlock()
 
 	return types.ToolResult{
 		Content: fmt.Sprintf("Created teammate: %s (%s)\nRole: %s\nModel: %s\nBudget: %d tokens", name, id, role, model, budget),
@@ -175,30 +191,35 @@ func (t *TeamDeleteTool) IsReadOnly(_ map[string]any) bool { return false }
 func (t *TeamDeleteTool) Execute(input map[string]any, ctx *ToolContext) types.ToolResult {
 	name, _ := input["name"].(string)
 
-	globalTeamManager.mu.Lock()
-	defer globalTeamManager.mu.Unlock()
+	mgr := getTeamMgr(ctx)
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
 
-	for id, tm := range globalTeamManager.teammates {
+	for id, tm := range mgr.teammates {
 		if tm.Name == name || tm.ID == name {
-			delete(globalTeamManager.teammates, id)
+			delete(mgr.teammates, id)
 			return types.ToolResult{Content: fmt.Sprintf("Removed teammate: %s (%s)", tm.Name, id)}
 		}
 	}
 	return types.ToolResult{Content: fmt.Sprintf("Teammate '%s' not found", name), IsError: true}
 }
 
-// ListTeammates returns formatted list of all teammates
-func ListTeammates() string {
-	globalTeamManager.mu.RLock()
-	defer globalTeamManager.mu.RUnlock()
+// ListTeammates returns formatted list of all teammates.
+// If mgr is nil, falls back to the global team manager.
+func ListTeammates(mgr *TeamManager) string {
+	if mgr == nil {
+		mgr = globalTeamManager
+	}
+	mgr.mu.RLock()
+	defer mgr.mu.RUnlock()
 
-	if len(globalTeamManager.teammates) == 0 {
+	if len(mgr.teammates) == 0 {
 		return "No teammates. Use TeamCreate to add teammates."
 	}
 
 	var sb strings.Builder
 	sb.WriteString("Team:\n")
-	for _, tm := range globalTeamManager.teammates {
+	for _, tm := range mgr.teammates {
 		sb.WriteString(fmt.Sprintf("  [%s] %s — %s (model: %s, budget: %d/%d tokens)\n",
 			tm.Status, tm.Name, tm.Role, tm.Model, tm.TokensUsed, tm.TokenBudget))
 	}

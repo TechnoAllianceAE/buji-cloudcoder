@@ -56,7 +56,8 @@ type APIKeysConfig struct {
 
 var (
 	globalConfig *Config
-	configOnce   sync.Once
+	configMu     sync.RWMutex
+	configLoaded bool
 )
 
 // GetConfigDir returns the config directory path
@@ -70,53 +71,85 @@ func GetSessionsDir() string {
 	return filepath.Join(GetConfigDir(), "sessions")
 }
 
-// Load reads config from disk and environment
+// Load reads config from disk and environment.
+// On first call it loads from disk; subsequent calls return the cached config.
+// Use Reload() to force re-reading from disk.
 func Load() *Config {
-	configOnce.Do(func() {
-		globalConfig = &Config{
-			MaxTokens:      16384,
-			Model:          "claude-sonnet-4-20250514",
-			PermissionMode: "default",
-		}
+	configMu.RLock()
+	if configLoaded {
+		cfg := globalConfig
+		configMu.RUnlock()
+		return cfg
+	}
+	configMu.RUnlock()
 
-		// Read config file
-		configPath := filepath.Join(GetConfigDir(), "settings.json")
-		data, err := os.ReadFile(configPath)
-		if err == nil {
-			_ = json.Unmarshal(data, globalConfig)
-		}
-
-		// Environment overrides for API keys
-		envOverride := func(target *string, envKey string) {
-			if val := os.Getenv(envKey); val != "" {
-				*target = val
-			}
-		}
-
-		// Legacy single key
-		envOverride(&globalConfig.APIKey, "ANTHROPIC_API_KEY")
-		envOverride(&globalConfig.BaseURL, "ANTHROPIC_BASE_URL")
-		envOverride(&globalConfig.Model, "ANTHROPIC_DEFAULT_MODEL")
-
-		// Per-provider keys from env
-		envOverride(&globalConfig.APIKeys.Anthropic, "ANTHROPIC_API_KEY")
-		envOverride(&globalConfig.APIKeys.OpenAI, "OPENAI_API_KEY")
-		envOverride(&globalConfig.APIKeys.OpenRouter, "OPENROUTER_API_KEY")
-		envOverride(&globalConfig.APIKeys.Groq, "GROQ_API_KEY")
-		envOverride(&globalConfig.APIKeys.Together, "TOGETHER_API_KEY")
-		envOverride(&globalConfig.APIKeys.Cerebras, "CEREBRAS_API_KEY")
-		envOverride(&globalConfig.APIKeys.XAI, "XAI_API_KEY")
-		envOverride(&globalConfig.APIKeys.Gemini, "GOOGLE_AI_API_KEY")
-		envOverride(&globalConfig.APIKeys.DeepSeek, "DEEPSEEK_API_KEY")
-		envOverride(&globalConfig.APIKeys.OllamaURL, "OLLAMA_URL")
-		envOverride(&globalConfig.APIKeys.LlamaCppURL, "LLAMACPP_URL")
-
-		// Sync legacy api_key into per-provider if it looks like an Anthropic key
-		if globalConfig.APIKey != "" && globalConfig.APIKeys.Anthropic == "" {
-			globalConfig.APIKeys.Anthropic = globalConfig.APIKey
-		}
-	})
+	configMu.Lock()
+	defer configMu.Unlock()
+	// Double-check after acquiring write lock
+	if configLoaded {
+		return globalConfig
+	}
+	globalConfig = loadFromDisk()
+	configLoaded = true
 	return globalConfig
+}
+
+// Reload forces a re-read of the config from disk and environment.
+// Useful when the working directory or settings file has changed.
+func Reload() *Config {
+	configMu.Lock()
+	defer configMu.Unlock()
+	globalConfig = loadFromDisk()
+	configLoaded = true
+	return globalConfig
+}
+
+// loadFromDisk reads config file and applies environment overrides
+func loadFromDisk() *Config {
+	cfg := &Config{
+		MaxTokens:      16384,
+		Model:          "claude-sonnet-4-20250514",
+		PermissionMode: "default",
+	}
+
+	// Read config file
+	configPath := filepath.Join(GetConfigDir(), "settings.json")
+	data, err := os.ReadFile(configPath)
+	if err == nil {
+		_ = json.Unmarshal(data, cfg)
+	}
+
+	// Environment overrides for API keys
+	envOverride := func(target *string, envKey string) {
+		if val := os.Getenv(envKey); val != "" {
+			*target = val
+		}
+	}
+
+	// Legacy single key
+	envOverride(&cfg.APIKey, "ANTHROPIC_API_KEY")
+	envOverride(&cfg.BaseURL, "ANTHROPIC_BASE_URL")
+	envOverride(&cfg.Model, "ANTHROPIC_DEFAULT_MODEL")
+
+	// Per-provider keys from env
+	envOverride(&cfg.APIKeys.Anthropic, "ANTHROPIC_API_KEY")
+	envOverride(&cfg.APIKeys.OpenAI, "OPENAI_API_KEY")
+	envOverride(&cfg.APIKeys.OpenRouter, "OPENROUTER_API_KEY")
+	envOverride(&cfg.APIKeys.Groq, "GROQ_API_KEY")
+	envOverride(&cfg.APIKeys.Together, "TOGETHER_API_KEY")
+	envOverride(&cfg.APIKeys.Cerebras, "CEREBRAS_API_KEY")
+	envOverride(&cfg.APIKeys.XAI, "XAI_API_KEY")
+	envOverride(&cfg.APIKeys.Gemini, "GOOGLE_AI_API_KEY")
+	envOverride(&cfg.APIKeys.DeepSeek, "DEEPSEEK_API_KEY")
+	envOverride(&cfg.APIKeys.OllamaURL, "OLLAMA_URL")
+	envOverride(&cfg.APIKeys.LlamaCppURL, "LLAMACPP_URL")
+
+	// Sync legacy api_key into per-provider if it looks like an Anthropic key
+	if cfg.APIKey != "" && cfg.APIKeys.Anthropic == "" {
+		cfg.APIKeys.Anthropic = cfg.APIKey
+	}
+
+	return cfg
 }
 
 // GetShell returns the default shell for the platform

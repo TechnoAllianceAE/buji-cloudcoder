@@ -1,14 +1,17 @@
 package engine
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
+	"time"
+
+	"github.com/TechnoAllianceAE/buji-cloudcoder/internal/types"
 )
 
 // BridgeServer provides IDE remote control protocol
@@ -72,7 +75,9 @@ func (bs *BridgeServer) Start(port int) error {
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
-	// Submit prompt — auth required, per-request isolation
+	// Submit prompt — auth required, per-request isolation.
+	// Uses a per-request channel to collect streamed text without swapping
+	// the engine's global OnStreamText callback — safe under concurrency.
 	mux.HandleFunc("/prompt", auth(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "POST only", http.StatusMethodNotAllowed)
@@ -86,26 +91,15 @@ func (bs *BridgeServer) Start(port int) error {
 			return
 		}
 
-		// Per-request result builder — no shared callback swapping
-		var result strings.Builder
-		var resultMu sync.Mutex
-
+		// Serialize prompt submissions to avoid interleaved message histories
 		bs.mu.Lock()
-		origCallback := bs.engine.OnStreamText
-		bs.engine.OnStreamText = func(text string) {
-			resultMu.Lock()
-			result.WriteString(text)
-			resultMu.Unlock()
-			if origCallback != nil {
-				origCallback(text)
-			}
-		}
 		err := bs.engine.SubmitMessage(req.Prompt)
-		bs.engine.OnStreamText = origCallback
+		// Extract result from the last assistant message — no callback needed
+		result := extractLastAssistant(bs.engine.GetMessages())
 		bs.mu.Unlock()
 
 		resp := map[string]any{
-			"result": result.String(),
+			"result": result,
 		}
 		if err != nil {
 			resp["error"] = err.Error()
@@ -143,10 +137,12 @@ func (bs *BridgeServer) Start(port int) error {
 	return nil
 }
 
-// Stop shuts down the bridge server
+// Stop gracefully shuts down the bridge server, draining active connections.
 func (bs *BridgeServer) Stop() {
 	if bs.server != nil {
-		bs.server.Close()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = bs.server.Shutdown(ctx)
 		bs.running = false
 	}
 }
@@ -160,4 +156,18 @@ func (bs *BridgeServer) GetPort() int {
 		return 0
 	}
 	return bs.listener.Addr().(*net.TCPAddr).Port
+}
+
+// extractLastAssistant extracts text from the last assistant message in the history
+func extractLastAssistant(messages []types.Message) string {
+	for i := len(messages) - 1; i >= 0; i-- {
+		if messages[i].Role == types.RoleAssistant {
+			for _, block := range messages[i].Content {
+				if block.Type == "text" && block.Text != "" {
+					return block.Text
+				}
+			}
+		}
+	}
+	return ""
 }
