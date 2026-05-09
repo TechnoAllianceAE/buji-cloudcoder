@@ -1,0 +1,33 @@
+{
+  "name": "@bcp/agent-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "import": "./src/*.ts",
+      "types": "./src/*.ts",
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "@bcp/common": "workspace:*",
+    "@bcp/internal": "workspace:*",
+    "ai": "^5.0.52",
+    "diff": "8.0.3",
+    "gpt-tokenizer": "^2.8.1",
+    "zod-from-json-schema": "0.4.2",
+    "lodash": "4.17.23"
+  },
+  "devDependencies": {}
+}

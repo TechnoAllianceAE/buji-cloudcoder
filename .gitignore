@@ -1,31 +1,32 @@
-# Binaries
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-/bc2
-
-# Test binary
-*.test
-
-# Output
-*.out
-
-# Go workspace
-go.work
-go.work.sum
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS
 .DS_Store
-Thumbs.db
+.idea/
+.vercel
 
-# Config (local)
-.bc2/
+# Environment files (secrets) - Bun loads .env.* files natively
+.env
+.env.*
+!.env.example
+
+# ctags
+tags
+
+node_modules
+dev
+dist
+dist-env
+tsconfig.tsbuildinfo
+.manicode
+__mock-projects__
+npm-app/src/__tests__/data/
+.aider*
+.codebuff*
+**.log
+
+debug/
+
+# Nx cache directories
+.nx/cache
+.nx/workspace-data
+
+# Infisical config (user-specific)
+.infisical.json

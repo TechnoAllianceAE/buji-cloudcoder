@@ -1,0 +1,87 @@
+{
+  "name": "@bcp/sdk",
+  "private": false,
+  "version": "0.10.7",
+  "description": "Official SDK for BujiCoderPlus — AI coding agent & framework",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "test:e2e": "vitest run e2e/streaming/ e2e/workflows/ e2e/custom-agents/ e2e/features/",
+    "test:integration": "vitest run e2e/integration/",
+    "verify": "tsx scripts/verify.ts",
+    "verify:skip-build": "tsx scripts/verify.ts --skip-build",
+    "smoke-test:dist": "tsx smoke-test-dist.ts",
+    "prepare-dist": "tsx scripts/publish.ts --dry-run",
+    "release": "node scripts/release.js",
+    "fetch-ripgrep": "tsx scripts/fetch-ripgrep.ts",
+    "prepack": "pnpm run build",
+    "dev": "pnpm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "bujicoderplus",
+    "bcp",
+    "ai",
+    "code-editing",
+    "assistant",
+    "sdk",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TechnoAllianceAE/bujicoder-enterprise.git",
+    "directory": "bujicoderplus/sdk"
+  },
+  "homepage": "https://ent.bujicoder.com",
+  "bugs": {
+    "url": "https://github.com/TechnoAllianceAE/bujicoder-enterprise/issues"
+  },
+  "dependencies": {
+    "@bcp/agent-runtime": "workspace:*",
+    "@bcp/code-map": "workspace:*",
+    "@bcp/common": "workspace:*",
+    "@bcp/internal": "workspace:*",
+    "@ai-sdk/anthropic": "2.0.50",
+    "@jitl/quickjs-wasmfile-release-sync": "0.31.0",
+    "ai": "^5.0.52",
+    "diff": "8.0.3",
+    "gray-matter": "^4.0.3",
+    "ignore": "7.0.5",
+    "micromatch": "^4.0.8",
+    "ws": "^8.18.0",
+    "@vscode/tree-sitter-wasm": "0.1.4",
+    "web-tree-sitter": "0.25.6",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@ai-sdk/provider": "2.0.1",
+    "@ai-sdk/provider-utils": "3.0.20",
+    "@types/diff": "8.0.0",
+    "@types/micromatch": "^4.0.9",
+    "adm-zip": "^0.5.12",
+    "node-fetch": "^3.3.2"
+  },
+  "author": ""
+}

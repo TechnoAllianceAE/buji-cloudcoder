@@ -1,0 +1,21 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@bcp/sdk": [
+        "../sdk/src/index.ts"
+      ],
+      "@bcp/common/*": [
+        "../common/src/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts"
+  ]
+}

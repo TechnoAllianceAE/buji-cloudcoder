@@ -1,0 +1,187 @@
+import { finetunedVertexModels } from '@bcp/common/old-constants'
+import { TEST_AGENT_RUNTIME_IMPL } from '@bcp/common/testing/impl/agent-runtime'
+import { promptSuccess } from '@bcp/common/util/error'
+import { userMessage } from '@bcp/common/util/messages'
+import { beforeEach, describe, expect, it, mock } from '@bcp/common/testing/vitest-compat'
+
+import { requestRelevantFiles } from '../request-files-prompt'
+
+import type {
+  AgentRuntimeDeps,
+  AgentRuntimeScopedDeps,
+} from '@bcp/common/types/contracts/agent-runtime'
+import type { Message } from '@bcp/common/types/messages/bcp-message'
+import type { ProjectFileContext } from '@bcp/common/util/file'
+
+let agentRuntimeImpl: AgentRuntimeDeps & AgentRuntimeScopedDeps
+
+describe('requestRelevantFiles', () => {
+  const mockMessages: Message[] = [userMessage('test prompt')]
+  const mockSystem = 'test system'
+  const mockFileContext: ProjectFileContext = {
+    projectRoot: '/test/project',
+    cwd: '/test/project',
+    fileTree: [{ name: 'file1.ts', filePath: 'file1.ts', type: 'file' }],
+    fileTokenScores: {},
+    knowledgeFiles: {},
+    gitChanges: {
+      status: '',
+      diff: '',
+      diffCached: '',
+      lastCommitMessages: '',
+    },
+    changesSinceLastChat: {},
+    shellConfigFiles: {},
+    systemInfo: {
+      platform: 'darwin',
+      shell: 'fish',
+      nodeVersion: 'v20.0.0',
+      arch: 'arm64',
+      homedir: '/Users/test',
+      cpus: 8,
+    },
+    agentTemplates: {},
+    customToolDefinitions: {},
+  }
+  const mockAssistantPrompt = null
+  const mockAgentStepId = 'step1'
+  const mockClientSessionId = 'session1'
+  const mockFingerprintId = 'fingerprint1'
+  const mockUserInputId = 'input1'
+  const mockUserId = 'user1'
+  const mockRepoId = 'owner/repo'
+  const mockRunId = 'run1'
+
+  beforeEach(() => {
+    agentRuntimeImpl = {
+      ...TEST_AGENT_RUNTIME_IMPL,
+      promptAiSdk: mock(() => Promise.resolve(promptSuccess('file1.ts\nfile2.ts'))),
+    }
+  })
+
+  it('should use default file counts and maxFiles when no custom config', async () => {
+    await requestRelevantFiles({
+      ...agentRuntimeImpl,
+      messages: mockMessages,
+      system: mockSystem,
+      fileContext: mockFileContext,
+      assistantPrompt: mockAssistantPrompt,
+      agentStepId: mockAgentStepId,
+      clientSessionId: mockClientSessionId,
+      fingerprintId: mockFingerprintId,
+      userInputId: mockUserInputId,
+      userId: mockUserId,
+      repoId: mockRepoId,
+      runId: mockRunId,
+      signal: new AbortController().signal,
+    })
+    expect(agentRuntimeImpl.promptAiSdk).toHaveBeenCalled()
+  })
+
+  it('should use custom file counts from config', async () => {
+    const _customConfig = {
+      modelName: 'ft_filepicker_005',
+      customFileCounts: { normal: 5 },
+      maxFilesPerRequest: 10,
+    }
+
+    await requestRelevantFiles({
+      ...agentRuntimeImpl,
+      messages: mockMessages,
+      system: mockSystem,
+      fileContext: mockFileContext,
+      assistantPrompt: mockAssistantPrompt,
+      agentStepId: mockAgentStepId,
+      clientSessionId: mockClientSessionId,
+      fingerprintId: mockFingerprintId,
+      userInputId: mockUserInputId,
+      userId: mockUserId,
+      repoId: mockRepoId,
+      runId: mockRunId,
+      signal: new AbortController().signal,
+    })
+    expect(agentRuntimeImpl.promptAiSdk).toHaveBeenCalled()
+  })
+
+  it('should use custom maxFilesPerRequest from config', async () => {
+    const _customConfig = {
+      modelName: 'ft_filepicker_005',
+      maxFilesPerRequest: 3,
+    }
+
+    const result = await requestRelevantFiles({
+      ...agentRuntimeImpl,
+      messages: mockMessages,
+      system: mockSystem,
+      fileContext: mockFileContext,
+      assistantPrompt: mockAssistantPrompt,
+      agentStepId: mockAgentStepId,
+      clientSessionId: mockClientSessionId,
+      fingerprintId: mockFingerprintId,
+      userInputId: mockUserInputId,
+      userId: mockUserId,
+      repoId: mockRepoId,
+      runId: mockRunId,
+      signal: new AbortController().signal,
+    })
+    expect(Array.isArray(result)).toBe(true)
+    if (result) {
+      expect(result.length).toBeLessThanOrEqual(3)
+    }
+  })
+
+  it('should use custom modelName from config', async () => {
+    const _customConfig = {
+      modelName: 'ft_filepicker_010',
+    }
+
+    await requestRelevantFiles({
+      ...agentRuntimeImpl,
+      messages: mockMessages,
+      system: mockSystem,
+      fileContext: mockFileContext,
+      assistantPrompt: mockAssistantPrompt,
+      agentStepId: mockAgentStepId,
+      clientSessionId: mockClientSessionId,
+      fingerprintId: mockFingerprintId,
+      userInputId: mockUserInputId,
+      userId: mockUserId,
+      repoId: mockRepoId,
+      runId: mockRunId,
+      signal: new AbortController().signal,
+    })
+    expect(agentRuntimeImpl.promptAiSdk).toHaveBeenCalledWith(
+      expect.objectContaining({
+        useFinetunedModel: finetunedVertexModels.ft_filepicker_010,
+      }),
+    )
+  })
+
+  it('should use default model if custom modelName is invalid', async () => {
+    const _customConfig = {
+      modelName: 'invalid-model-name',
+    }
+
+    await requestRelevantFiles({
+      ...agentRuntimeImpl,
+      messages: mockMessages,
+      system: mockSystem,
+      fileContext: mockFileContext,
+      assistantPrompt: mockAssistantPrompt,
+      agentStepId: mockAgentStepId,
+      clientSessionId: mockClientSessionId,
+      fingerprintId: mockFingerprintId,
+      userInputId: mockUserInputId,
+      userId: mockUserId,
+      repoId: mockRepoId,
+      runId: mockRunId,
+      signal: new AbortController().signal,
+    })
+    const expectedModel = finetunedVertexModels.ft_filepicker_010
+    expect(agentRuntimeImpl.promptAiSdk).toHaveBeenCalledWith(
+      expect.objectContaining({
+        useFinetunedModel: expectedModel,
+      }),
+    )
+  })
+})

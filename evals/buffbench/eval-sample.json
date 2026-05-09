@@ -1,0 +1,36 @@
+{
+  "repoUrl": "https://github.com/TechnoAllianceAE/bujicoder",
+  "generationDate": "2026-03-26T00:00:00.000Z",
+  "evalCommits": [
+    {
+      "id": "sample-add-readme",
+      "sha": "0000000000000000000000000000000000000001",
+      "parentSha": "0000000000000000000000000000000000000000",
+      "spec": "Add a README.md file with project name and description.",
+      "prompt": "Create a README.md file that describes the project with a title and a brief description.",
+      "supplementalFiles": [],
+      "fileDiffs": [
+        {
+          "path": "README.md",
+          "status": "added",
+          "diff": "--- /dev/null\n+++ b/README.md\n@@ -0,0 +1,3 @@\n+# Sample Project\n+\n+A sample project for evaluation testing.\n"
+        }
+      ]
+    },
+    {
+      "id": "sample-fix-typo",
+      "sha": "0000000000000000000000000000000000000002",
+      "parentSha": "0000000000000000000000000000000000000001",
+      "spec": "Fix a typo in the configuration file.",
+      "prompt": "Fix the typo in config.ts where 'defualt' should be 'default'.",
+      "supplementalFiles": [],
+      "fileDiffs": [
+        {
+          "path": "config.ts",
+          "status": "modified",
+          "diff": "--- a/config.ts\n+++ b/config.ts\n@@ -1,3 +1,3 @@\n export const config = {\n-  defualt: true,\n+  default: true,\n };\n"
+        }
+      ]
+    }
+  ]
+}

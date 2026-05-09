@@ -1,0 +1,74 @@
+import { type ToolSet } from 'ai';
+import { getMCPToolData } from './mcp';
+import { getAgentStreamFromTemplate } from './prompt-agent-stream';
+import { runProgrammaticStep } from './run-programmatic-step';
+import { getAgentTemplate } from './templates/agent-registry';
+import { getAgentPrompt } from './templates/strings';
+import { processStream } from './tools/stream-parser';
+import type { AgentTemplate } from '@bcp/common/types/agent-template';
+import type { TrackEventFn } from '@bcp/common/types/contracts/analytics';
+import type { AddAgentStepFn, FinishAgentRunFn, StartAgentRunFn } from '@bcp/common/types/contracts/database';
+import type { PromptAiSdkFn } from '@bcp/common/types/contracts/llm';
+import type { Logger } from '@bcp/common/types/contracts/logger';
+import type { ParamsExcluding } from '@bcp/common/types/function-params';
+import type { TextPart, ImagePart } from '@bcp/common/types/messages/content-part';
+import type { PrintModeEvent } from '@bcp/common/types/print-mode';
+import type { AgentTemplateType, AgentState, AgentOutput } from '@bcp/common/types/session-state';
+import type { CustomToolDefinitions, ProjectFileContext } from '@bcp/common/util/file';
+declare function additionalToolDefinitions(params: {
+    agentTemplate: AgentTemplate;
+    fileContext: ProjectFileContext;
+} & ParamsExcluding<typeof getMCPToolData, 'toolNames' | 'mcpServers' | 'writeTo'>): Promise<CustomToolDefinitions>;
+export declare const runAgentStep: (params: {
+    userId: string | undefined;
+    userInputId: string;
+    clientSessionId: string;
+    costMode?: string;
+    fingerprintId: string;
+    repoId: string | undefined;
+    onResponseChunk: (chunk: string | PrintModeEvent) => void;
+    agentType: AgentTemplateType;
+    agentTemplate: AgentTemplate;
+    fileContext: ProjectFileContext;
+    agentState: AgentState;
+    localAgentTemplates: Record<string, AgentTemplate>;
+    prompt: string | undefined;
+    spawnParams: Record<string, any> | undefined;
+    system: string;
+    n?: number;
+    trackEvent: TrackEventFn;
+    promptAiSdk: PromptAiSdkFn;
+} & ParamsExcluding<typeof processStream, "agentContext" | "agentState" | "agentStepId" | "agentTemplate" | "fullResponse" | "messages" | "onCostCalculated" | "repoId" | "stream"> & ParamsExcluding<typeof getAgentStreamFromTemplate, "agentId" | "includeCacheControl" | "messages" | "onCostCalculated" | "template"> & ParamsExcluding<typeof getAgentTemplate, "agentId"> & ParamsExcluding<typeof getAgentPrompt, "agentTemplate" | "promptType" | "agentState" | "agentTemplates"> & ParamsExcluding<typeof getMCPToolData, "toolNames" | "mcpServers" | "writeTo"> & ParamsExcluding<PromptAiSdkFn, "messages" | "model" | "onCostCalculated" | "n">) => Promise<{
+    agentState: AgentState;
+    fullResponse: string;
+    shouldEndTurn: boolean;
+    messageId: string | null;
+    nResponses?: string[];
+}>;
+export declare function loopAgentSteps(params: {
+    addAgentStep: AddAgentStepFn;
+    agentState: AgentState;
+    agentType: string;
+    clearUserPromptMessagesAfterResponse?: boolean;
+    clientSessionId: string;
+    content?: Array<TextPart | ImagePart>;
+    costMode?: string;
+    fileContext: ProjectFileContext;
+    finishAgentRun: FinishAgentRunFn;
+    localAgentTemplates: Record<string, AgentTemplate>;
+    logger: Logger;
+    parentSystemPrompt?: string;
+    parentTools?: ToolSet;
+    prompt: string | undefined;
+    signal: AbortSignal;
+    spawnParams: Record<string, any> | undefined;
+    startAgentRun: StartAgentRunFn;
+    userId: string | undefined;
+    userInputId: string;
+    agentTemplate?: AgentTemplate;
+} & ParamsExcluding<typeof additionalToolDefinitions, 'agentTemplate'> & ParamsExcluding<typeof runProgrammaticStep, 'agentState' | 'onCostCalculated' | 'prompt' | 'runId' | 'stepNumber' | 'stepsComplete' | 'system' | 'template' | 'toolCallParams' | 'tools'> & ParamsExcluding<typeof getAgentTemplate, 'agentId'> & ParamsExcluding<typeof getAgentPrompt, 'agentTemplate' | 'promptType' | 'agentTemplates' | 'additionalToolDefinitions'> & ParamsExcluding<typeof getMCPToolData, 'toolNames' | 'mcpServers' | 'writeTo'> & ParamsExcluding<StartAgentRunFn, 'agentId' | 'ancestorRunIds'> & ParamsExcluding<FinishAgentRunFn, 'runId' | 'status' | 'totalSteps' | 'directCredits' | 'totalCredits'> & ParamsExcluding<typeof runAgentStep, 'additionalToolDefinitions' | 'agentState' | 'agentTemplate' | 'prompt' | 'runId' | 'spawnParams' | 'system' | 'tools'> & ParamsExcluding<AddAgentStepFn, 'agentRunId' | 'stepNumber' | 'credits' | 'childRunIds' | 'messageId' | 'status' | 'startTime'>): Promise<{
+    agentState: AgentState;
+    output: AgentOutput;
+}>;
+export {};
+//# sourceMappingURL=run-agent-step.d.ts.map

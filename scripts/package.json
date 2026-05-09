@@ -1,0 +1,27 @@
+{
+  "name": "@bcp/scripts",
+  "version": "1.0.0",
+  "description": "Scripts package for BujiCoderPlus",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "debug-log-subset": "tsx debug-log-subset.ts",
+    "typecheck-all": "tsx typecheck-all.ts"
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "^1.0.19",
+    "@bcp/common": "workspace:*",
+    "@bcp/internal": "workspace:*",
+    "ai": "^5.0.52",
+    "stripe": "^16.11.0"
+  },
+  "devDependencies": {}
+}

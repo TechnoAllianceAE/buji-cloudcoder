@@ -1,0 +1,1 @@
+{"version":3,"file":"task-completed.d.ts","sourceRoot":"","sources":["task-completed.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EACV,gBAAgB,EAChB,kBAAkB,EACnB,MAAM,wBAAwB,CAAA;AAE/B,eAAO,MAAM,mBAAmB,kCAE7B;IACD,wBAAwB,EAAE,OAAO,CAAC,GAAG,CAAC,CAAA;IACtC,QAAQ,EAAE,gBAAgB,CAAC,gBAAgB,CAAC,CAAA;CAC7C,KAAG,OAAO,CAAC;IAAE,MAAM,EAAE,kBAAkB,CAAC,gBAAgB,CAAC,CAAA;CAAE,CAGF,CAAA"}

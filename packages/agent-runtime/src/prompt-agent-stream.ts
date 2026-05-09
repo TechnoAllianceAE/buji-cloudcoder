@@ -1,0 +1,118 @@
+import { globalStopSequence } from './constants'
+
+import type { AgentTemplate } from './templates/types'
+import type { TrackEventFn } from '@bcp/common/types/contracts/analytics'
+import type { SendActionFn } from '@bcp/common/types/contracts/client'
+import type { CacheDebugUsageData, PromptAiSdkStreamFn } from '@bcp/common/types/contracts/llm'
+import type { Logger } from '@bcp/common/types/contracts/logger'
+import type { ParamsOf } from '@bcp/common/types/function-params'
+import type { Message } from '@bcp/common/types/messages/bcp-message'
+import type { OpenRouterProviderOptions } from '@bcp/internal/openrouter-ai-sdk'
+import type { ToolSet } from 'ai'
+
+export const getAgentStreamFromTemplate = (params: {
+  agentId?: string
+  apiKey: string
+  clientSessionId: string
+  costMode?: string
+  fingerprintId: string
+  includeCacheControl?: boolean
+  localAgentTemplates: Record<string, AgentTemplate>
+  logger: Logger
+  messages: Message[]
+  runId: string
+  signal: AbortSignal
+  template: AgentTemplate
+  tools: ToolSet
+  userId: string | undefined
+  userInputId: string
+  cacheDebugCorrelation?: string
+  onCacheDebugProviderRequestBuilt?: (params: {
+    provider: string
+    rawBody: unknown
+    normalizedBody?: unknown
+  }) => void
+  onCacheDebugUsageReceived?: (usage: CacheDebugUsageData) => void
+
+  onCostCalculated?: (credits: number) => Promise<void>
+  promptAiSdkStream: PromptAiSdkStreamFn
+  sendAction: SendActionFn
+  trackEvent: TrackEventFn
+}): ReturnType<PromptAiSdkStreamFn> => {
+  const {
+    agentId,
+    apiKey,
+    clientSessionId,
+    costMode,
+    fingerprintId,
+    includeCacheControl,
+    localAgentTemplates,
+    logger,
+    messages,
+    runId,
+    template,
+    tools,
+    userId,
+    userInputId,
+    cacheDebugCorrelation,
+    onCacheDebugProviderRequestBuilt,
+    onCacheDebugUsageReceived,
+
+    sendAction,
+    onCostCalculated,
+    promptAiSdkStream,
+    trackEvent,
+  } = params
+
+  if (!template) {
+    throw new Error('Agent template is null/undefined')
+  }
+
+  const { model } = template
+
+  const aiSdkStreamParams: ParamsOf<PromptAiSdkStreamFn> = {
+    agentId,
+    apiKey,
+    clientSessionId,
+    costMode,
+    fingerprintId,
+    includeCacheControl,
+    logger,
+    localAgentTemplates,
+    maxOutputTokens: undefined,
+    maxRetries: 3,
+    messages,
+    model,
+    runId,
+    signal: params.signal,
+    spawnableAgents: template.spawnableAgents,
+    stopSequences: [globalStopSequence],
+    tools,
+    userId,
+    userInputId,
+    cacheDebugCorrelation,
+    onCacheDebugProviderRequestBuilt,
+    onCacheDebugUsageReceived,
+
+    onCostCalculated,
+    sendAction,
+    trackEvent,
+  }
+
+  if (!aiSdkStreamParams.providerOptions) {
+    aiSdkStreamParams.providerOptions = {}
+  }
+  for (const provider of ['openrouter', 'codebuff'] as const) {
+    if (!aiSdkStreamParams.providerOptions[provider]) {
+      aiSdkStreamParams.providerOptions[provider] = {}
+    }
+    ;(
+      aiSdkStreamParams.providerOptions[provider] as OpenRouterProviderOptions
+    ).reasoning = template.reasoningOptions
+  }
+
+  // Pass agent's provider routing options to SDK
+  aiSdkStreamParams.agentProviderOptions = template.providerOptions
+
+  return promptAiSdkStream(aiSdkStreamParams)
+}

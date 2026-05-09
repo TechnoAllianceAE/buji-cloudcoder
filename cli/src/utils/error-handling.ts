@@ -1,0 +1,75 @@
+import { env } from '@bcp/common/env'
+
+import type { ChatMessage } from '../types/chat'
+
+const defaultAppUrl = env.NEXT_PUBLIC_BCP_APP_URL || 'https://bujicoder.com'
+
+// Normalize unknown errors to a user-facing string.
+const extractErrorMessage = (error: unknown, fallback: string): string => {
+  if (typeof error === 'string') {
+    return error
+  }
+  if (error instanceof Error && error.message) {
+    return error.message + (error.stack ? `\n\n${error.stack}` : '')
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    const candidate = (error as { message: unknown }).message
+    if (typeof candidate === 'string' && candidate.length > 0) {
+      return candidate
+    }
+  }
+  return fallback
+}
+
+/**
+ * Check if an error indicates the user is out of credits.
+ * Standardized on statusCode === 402 for payment required detection.
+ */
+export const isOutOfCreditsError = (error: unknown): boolean => {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'statusCode' in error &&
+    (error as { statusCode: unknown }).statusCode === 402
+  ) {
+    return true
+  }
+  return false
+}
+
+/**
+ * Check if an error indicates free mode is not available in the user's country.
+ * Standardized on statusCode === 403 + error === 'free_mode_unavailable'.
+ */
+export const isFreeModeUnavailableError = (error: unknown): boolean => {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'statusCode' in error &&
+    (error as { statusCode: unknown }).statusCode === 403 &&
+    'error' in error &&
+    (error as { error: unknown }).error === 'free_mode_unavailable'
+  ) {
+    return true
+  }
+  return false
+}
+
+export const OUT_OF_CREDITS_MESSAGE = `Out of credits. Please add credits at ${defaultAppUrl}/usage`
+
+export const FREE_MODE_UNAVAILABLE_MESSAGE =
+  'Free mode is not available outside of the United States and Canada. Please upgrade to a paid plan to use BujiCoderPlus outside the US and Canada.'
+
+export const createErrorMessage = (
+  error: unknown,
+  aiMessageId: string,
+): Partial<ChatMessage> => {
+  const message = extractErrorMessage(error, 'Unknown error occurred')
+
+  return {
+    id: aiMessageId,
+    content: `**Error:** ${message}`,
+    blocks: undefined,
+    isComplete: true,
+  }
+}

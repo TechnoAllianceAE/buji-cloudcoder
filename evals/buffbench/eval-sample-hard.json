@@ -1,0 +1,29 @@
+{
+  "repoUrl": "https://github.com/TechnoAllianceAE/bujicoder",
+  "generationDate": "2026-03-26T00:00:00.000Z",
+  "evalCommits": [
+    {
+      "id": "sample-add-auth-middleware",
+      "sha": "0000000000000000000000000000000000000003",
+      "parentSha": "0000000000000000000000000000000000000002",
+      "spec": "Add JWT authentication middleware that validates Bearer tokens from the Authorization header, extracts the user ID claim, and attaches it to the request context. Return 401 for missing/invalid tokens.",
+      "prompt": "Add a JWT authentication middleware. It should validate Bearer tokens from the Authorization header, extract the user ID from the token claims, and attach it to the request context. Return 401 Unauthorized for missing or invalid tokens.",
+      "supplementalFiles": [
+        "src/types.ts",
+        "src/server.ts"
+      ],
+      "fileDiffs": [
+        {
+          "path": "src/middleware/auth.ts",
+          "status": "added",
+          "diff": "--- /dev/null\n+++ b/src/middleware/auth.ts\n@@ -0,0 +1,25 @@\n+import { verify } from 'jsonwebtoken'\n+import type { Request, Response, NextFunction } from 'express'\n+\n+export function authMiddleware(req: Request, res: Response, next: NextFunction) {\n+  const authHeader = req.headers.authorization\n+  if (!authHeader || !authHeader.startsWith('Bearer ')) {\n+    return res.status(401).json({ error: 'Missing or invalid authorization header' })\n+  }\n+\n+  const token = authHeader.slice(7)\n+  try {\n+    const decoded = verify(token, process.env.JWT_SECRET!) as { userId: string }\n+    req.userId = decoded.userId\n+    next()\n+  } catch {\n+    return res.status(401).json({ error: 'Invalid token' })\n+  }\n+}\n"
+        },
+        {
+          "path": "src/server.ts",
+          "status": "modified",
+          "diff": "--- a/src/server.ts\n+++ b/src/server.ts\n@@ -1,5 +1,7 @@\n import express from 'express'\n+import { authMiddleware } from './middleware/auth'\n \n const app = express()\n+app.use('/api', authMiddleware)\n \n export default app\n"
+        }
+      ]
+    }
+  ]
+}

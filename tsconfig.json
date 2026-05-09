@@ -1,0 +1,31 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true, // don't place JS everywhere while hacking
+    "baseUrl": ".", // Node tooling and editors see the aliases
+    "paths": {
+      "@bcp/common/*": ["./common/src/*"],
+      "@bcp/web/*": ["./web/src/*"],
+      "@bcp/evals/*": ["./evals/*"],
+      "@bcp/sdk": ["./sdk/src/index.ts"],
+      "@bcp/sdk/*": ["./sdk/*"],
+      "@bcp/agent-runtime/*": ["./packages/agent-runtime/src/*"],
+      "@bcp/billing/*": ["./packages/billing/src/*"],
+      "@bcp/bigquery/*": ["./packages/bigquery/src/*"],
+      "@bcp/internal/*": ["./packages/internal/src/*"],
+      "@bcp/code-map/*": ["./packages/code-map/*"]
+    }
+  },
+  "files": [],
+  "references": [
+    { "path": "./common" },
+    { "path": "./web" },
+    { "path": "./evals" },
+    { "path": "./sdk" },
+    { "path": "./packages/billing" },
+    { "path": "./packages/bigquery" },
+    { "path": "./packages/internal" },
+    { "path": "./packages/code-map" },
+    { "path": "./scripts" }
+  ]
+}

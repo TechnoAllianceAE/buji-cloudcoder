@@ -1,0 +1,66 @@
+{
+  "name": "@bcp/internal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./db": {
+      "import": "./src/db/index.ts",
+      "types": "./src/db/index.ts",
+      "default": "./src/db/index.ts"
+    },
+    "./loops": {
+      "import": "./src/loops/index.ts",
+      "types": "./src/loops/index.ts",
+      "default": "./src/loops/index.ts"
+    },
+    "./openrouter-ai-sdk": {
+      "import": "./src/openrouter-ai-sdk/index.ts",
+      "types": "./src/openrouter-ai-sdk/index.ts",
+      "default": "./src/openrouter-ai-sdk/index.ts"
+    },
+    "./env": {
+      "react-server": "./src/env.react-server.ts",
+      "browser": "./src/env.browser.ts",
+      "import": "./src/env.ts",
+      "types": "./src/env.ts",
+      "default": "./src/env.ts"
+    },
+    "./*": {
+      "import": "./src/*.ts",
+      "types": "./src/*.ts",
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate --config=./src/db/drizzle.config.ts",
+    "db:migrate": "drizzle-kit push --config=./src/db/drizzle.config.ts",
+    "db:start": "docker compose -f ./src/db/docker-compose.yml up --wait && pnpm run db:generate && (timeout 1 || sleep 1) && pnpm run db:migrate",
+    "db:e2e:setup": "tsx ./src/db/e2e-setup.ts",
+    "db:e2e:down": "docker compose -f ./src/db/docker-compose.e2e.yml down --volumes",
+    "db:studio": "drizzle-kit studio --config=./src/db/drizzle.config.ts"
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "@ai-sdk/provider": "2.0.1",
+    "@ai-sdk/provider-utils": "3.0.20",
+    "@bcp/common": "workspace:*",
+    "ai": "^5.0.52",
+    "drizzle-kit": "0.31.8",
+    "drizzle-orm": "0.45.1",
+    "loops": "^5.0.1",
+    "msw": "^2.12.1",
+    "next-auth": "^4.24.11",
+    "postgres": "^3.4.7",
+    "server-only": "0.0.1",
+    "stripe": "^16.11.0"
+  },
+  "devDependencies": {}
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"get-file-reading-updates.d.ts","sourceRoot":"","sources":["get-file-reading-updates.ts"],"names":[],"mappings":"AAEA,OAAO,KAAK,EAAE,cAAc,EAAE,MAAM,oCAAoC,CAAA;AAExE,wBAAsB,qBAAqB,CAAC,MAAM,EAAE;IAClD,YAAY,EAAE,cAAc,CAAA;IAC5B,cAAc,EAAE,MAAM,EAAE,CAAA;CACzB,GAAG,OAAO,CACT;IACE,IAAI,EAAE,MAAM,CAAA;IACZ,OAAO,EAAE,MAAM,CAAA;CAChB,EAAE,CACJ,CAgBA"}
